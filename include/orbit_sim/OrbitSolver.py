@@ -1,4 +1,7 @@
 import numpy as np
+from geometry_msgs.msg import Vector3
+from orbit_sim.msg import State2d
+import rospy
 
 class Solver():
 
@@ -25,11 +28,24 @@ class Solver():
             self.integrate = self.euler
             self.mode = 'euler'
 
+        #publisher setup
+        self.pubSimulationData = rospy.Publisher("/simulation_data", State2d, queue_size = 1)
+
         #initialize state history
         #self.stateHistory = [None]*buffer_size
         #self.stateHistory[0] = self.initState
 
-    def step(self):
+    def publish_data(self, event=None):
+        pos_x, pos_y, vel_x, vel_y = self.getStates()
+
+        state = State2d()
+        state.position = Vector3(pos_x, pos_y, 0)
+        state.velocity = Vector3(vel_x, vel_y, 0)
+
+        self.pubSimulationData.publish(state)
+        return
+
+    def step(self, event=None):
 
         #get derivative
         self.diff = self.getDerivative()

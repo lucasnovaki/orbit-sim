@@ -87,6 +87,14 @@ Visualization Manager:
       Radius: 0.10000000149011612
       Reference Frame: <Fixed Frame>
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: spacecraft/spacecraft_velocity
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -124,11 +132,11 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Scale: 12.341772079467773
+      Scale: 6.495527744293213
       Target Frame: <Fixed Frame>
       Value: TopDownOrtho (rviz)
-      X: 1.3763704299926758
-      Y: 5.976625919342041
+      X: -1.1767947673797607
+      Y: 17.324764251708984
     Saved: ~
 Window Geometry:
   Displays:
@@ -146,5 +154,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1366
-  X: 0
-  Y: 23
+  X: 8
+  Y: 31
