@@ -28,7 +28,6 @@ if __name__ == '__main__':
     try:
         # Initialisierung und Start des Nodes
         rospy.init_node('environment', anonymous=True)
-        #rate = rospy.Rate(100)
         
         solver = Solver()
 
@@ -36,15 +35,9 @@ if __name__ == '__main__':
         rospy.Timer(rospy.Duration(1.0/1000.0), solver.step)
 
         # Create a ROS Timer for sending data
-        rospy.Timer(rospy.Duration(10.0/100.0), solver.publish_data)
+        rospy.Timer(rospy.Duration(10.0/1000.0), solver.publish_data)
         
         rospy.spin()
-                
-        #   if(continue_integration):
-        #       solver.step()
-
-        #pub_environment1.publish("x = {:.6f}, y = {:.6f}, vx = {:.6f}, vy = {:.6f}".format(*solver.getStates()))
-        #rate.sleep()
 
     except rospy.ROSInterruptException:
         pass
