@@ -13,26 +13,36 @@ visualization_msgs::Marker central_body;
 visualization_msgs::Marker spacecraft_body;
 visualization_msgs::Marker spacecraft_velocity;
 
+void updateVelocityArrow(geometry_msgs::Vector3 pos, geometry_msgs::Vector3 vel){
+    geometry_msgs::Point arrowBegin;
+    geometry_msgs::Point arrowEnd;
+
+    arrowBegin.x = SCALE_FACTOR*pos.x;
+    arrowBegin.y = SCALE_FACTOR*pos.y;
+    arrowBegin.z = 0;
+    arrowEnd.x = vel.x + arrowBegin.x;
+    arrowEnd.y = vel.y + arrowBegin.y;
+    arrowEnd.z = 0;
+
+    spacecraft_velocity.points[0] = arrowBegin;
+    spacecraft_velocity.points[1] = arrowEnd;
+
+    return;
+}
+
+void updateSpacecraftBody(geometry_msgs::Vector3 pos){
+  spacecraft_body.pose.position.x = SCALE_FACTOR*pos.x;
+  spacecraft_body.pose.position.y = SCALE_FACTOR*pos.y;
+  return;
+}
+
 void PosCallback(const orbit_sim::State2d::ConstPtr& state){
     
     geometry_msgs::Vector3 statePos = state->position;
     geometry_msgs::Vector3 stateVel = state->velocity;
 
-    spacecraft_body.pose.position.x = SCALE_FACTOR*statePos.x;
-    spacecraft_body.pose.position.y = SCALE_FACTOR*statePos.y;
-
-    geometry_msgs::Point arrowBegin;
-    geometry_msgs::Point arrowEnd;
-
-    arrowBegin.x = SCALE_FACTOR*statePos.x;
-    arrowBegin.y = SCALE_FACTOR*statePos.y;
-    arrowBegin.z = 0;
-    arrowEnd.x = stateVel.x + arrowBegin.x;
-    arrowEnd.y = stateVel.y + arrowBegin.y;
-    arrowEnd.z = 0;
-
-    spacecraft_velocity.points[0] = arrowBegin;
-    spacecraft_velocity.points[1] = arrowEnd ;
+    updateSpacecraftBody(statePos);
+    updateVelocityArrow(statePos, stateVel);
 
     return;
 }
