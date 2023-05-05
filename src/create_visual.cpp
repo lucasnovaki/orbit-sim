@@ -47,6 +47,11 @@ void PosCallback(const orbit_sim::State2d::ConstPtr& state){
     return;
 }
 
+void OrbitCallback(const orbit_sim::State2d::ConstPtr& state){
+    //change data type later!
+    return;
+}
+
 int main( int argc, char** argv )
 {
   // Initialize node
@@ -61,7 +66,8 @@ int main( int argc, char** argv )
   ros::Publisher spacecraft_vel_pub = n.advertise<visualization_msgs::Marker>("spacecraft/spacecraft_velocity", 1);
 
   //Set-up subscriber
-  ros::Subscriber spacecraft_pos_pub = n.subscribe("/simulation_data", 20, PosCallback);
+  ros::Subscriber spacecraft_pos_sub = n.subscribe("/simulation_data/states", 20, PosCallback);
+  ros::Subscriber ellipsis_sub = n.subscribe("/simulation_data/orbit_params", 1, OrbitCallback);
 
   //dimensions of ellipse
   float theta = 0;

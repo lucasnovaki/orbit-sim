@@ -29,7 +29,7 @@ class Solver():
             self.mode = 'euler'
 
         #publisher setup
-        self.pubSimulationData = rospy.Publisher("/simulation_data", State2d, queue_size = 1)
+        self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
 
         #initialize state history
         #self.stateHistory = [None]*buffer_size
