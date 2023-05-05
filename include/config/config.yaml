@@ -1,0 +1,4 @@
+initialState: [0, -15150.0, 6.436, 0]
+gravConst: 6.674e-20
+earthMass: 5.9722e+24
+miConst: 3.9858e+5

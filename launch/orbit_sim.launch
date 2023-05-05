@@ -1,7 +1,10 @@
 <launch>
 
+    <!-- Load initial conditions-->
+    <rosparam file="$(find orbit_sim)/include/config/config.yaml" />
+
     <!-- Start RViz-->
-    <node pkg="rviz" name = "rviz" type="rviz" respawn="false" args="-d $(find orbit_sim)/include/rviz_config/rviz_config.rviz"/>
+    <node pkg="rviz" name = "rviz" type="rviz" respawn="false" args="-d $(find orbit_sim)/include/config/rviz_config.rviz"/>
 
     <!-- Start Visual Tool Node -->
     <node pkg="orbit_sim" name="create_visual" type="create_visual" output="screen"/>

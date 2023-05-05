@@ -29,9 +29,13 @@ if __name__ == '__main__':
         # Initialisierung und Start des Nodes
         rospy.init_node('environment', anonymous=True)
         
-        solver = Solver()
+        #get initial conditions for simulation
+        initStateParam = rospy.get_param('/initialState')
 
-        # Create a ROS Timer for numerical simulation
+        #create instance for solver
+        solver = Solver(initState = np.array([initStateParam]))
+
+        # Create a ROS Timer for numerical simulation update equation
         rospy.Timer(rospy.Duration(1.0/1000.0), solver.step)
 
         # Create a ROS Timer for sending data
