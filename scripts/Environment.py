@@ -3,7 +3,7 @@
 # Einbindung der notwendigen Bibliothken
 import rospy
 from std_msgs.msg import String
-from orbit_sim.OrbitSolver import *
+from orbit_sim.EnvironmentSim import *
 import time
 
 #Global variables
@@ -32,14 +32,14 @@ if __name__ == '__main__':
         #get initial conditions for simulation
         initStateParam = rospy.get_param('/initialState')
 
-        #create instance for solver
-        solver = Solver(initState = np.array([initStateParam]))
+        #create spacecraft instance
+        sc = Spacecraft2d(0, initState = np.array([initStateParam]), dt = 1)
 
         # Create a ROS Timer for numerical simulation update equation
-        rospy.Timer(rospy.Duration(1.0/1000.0), solver.step)
+        rospy.Timer(rospy.Duration(1.0/1000.0), sc.step)
 
         # Create a ROS Timer for sending data
-        rospy.Timer(rospy.Duration(10.0/1000.0), solver.publish_data)
+        rospy.Timer(rospy.Duration(10.0/1000.0), sc.publish_data)
         
         rospy.spin()
 
