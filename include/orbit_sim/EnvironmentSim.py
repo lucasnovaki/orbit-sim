@@ -66,7 +66,7 @@ class Spacecraft2d(Solver2d):
         super(Spacecraft2d, self).__init__(initState, dt)
 
         #publisher setup
-        self.pubSimulationData = rospy.Publisher("/simulation_data", State2d, queue_size = 1)
+        self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
 
     def applyThrust(delta_v):
         self.currentState[0,2] += delta_v[0, 1]
