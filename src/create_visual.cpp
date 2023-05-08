@@ -54,20 +54,25 @@ void OrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
     float current_a_orbit = orbitParams->a_orbit;
     float current_e_orbit = orbitParams->e_orbit;
     float current_b_orbit = current_a_orbit*sqrt(1 - pow(current_e_orbit,2));
-    float r_pe = current_a_orbit*(1 - current_e_orbit);
 
-    // Create the vertices for the lines
-    for (uint32_t i = 0; i < 1000; ++i)
-    {
-      float x_i = current_b_orbit * cos(i / 1000.0f * 2 * M_PI);
-      float y_i = current_a_orbit * (sin(i / 1000.0f * 2 * M_PI) + 1) - r_pe;
+    if (current_e_orbit <= 1 & current_e_orbit > 0){
+      
+      //calculate orbit shape only if its indeed ellipsis
+      float r_pe = current_a_orbit*(1 - current_e_orbit);
 
-      geometry_msgs::Point p;
-      p.x = SCALE_FACTOR*x_i;
-      p.y = SCALE_FACTOR*y_i;
-      p.z = 0;
+      // Create the vertices for the lines
+      for (uint32_t i = 0; i < 1000; ++i)
+      {
+        float x_i = current_b_orbit * cos(i / 1000.0f * 2 * M_PI);
+        float y_i = current_a_orbit * (sin(i / 1000.0f * 2 * M_PI) + 1) - r_pe;
 
-      ellipsis.points[i] = p;
+        geometry_msgs::Point p;
+        p.x = SCALE_FACTOR*x_i;
+        p.y = SCALE_FACTOR*y_i;
+        p.z = 0;
+
+        ellipsis.points[i] = p;
+      }
     }
 
     return;
