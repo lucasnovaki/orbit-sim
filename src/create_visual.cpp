@@ -1,8 +1,8 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 #include <orbit_sim/State2d.h>
+#include <orbit_sim/Orbit2d.h>
 #include <geometry_msgs/Vector3.h>
-#include <iostream>
 
 #define SCALE_FACTOR 0.001
 #define VISUAL_NODE_RATE 20
@@ -47,7 +47,7 @@ void PosCallback(const orbit_sim::State2d::ConstPtr& state){
     return;
 }
 
-void OrbitCallback(const orbit_sim::State2d::ConstPtr& state){
+void OrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbit){
     //change data type later!
     return;
 }

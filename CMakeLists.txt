@@ -54,7 +54,7 @@ catkin_python_setup()
 add_message_files(
   FILES
   State2d.msg
-  #Message2.msg
+  Orbit2d.msg
 )
 
 ## Generate services in the 'srv' folder
