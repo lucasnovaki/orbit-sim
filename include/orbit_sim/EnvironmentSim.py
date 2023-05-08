@@ -1,6 +1,7 @@
 import numpy as np
 from geometry_msgs.msg import Vector3
 from orbit_sim.msg import State2d
+from orbit_sim.msg import Orbit2d as OrbitMsg
 import rospy
 
 class Solver2d(object):
@@ -65,8 +66,14 @@ class Spacecraft2d(Solver2d):
         #initialize solver and inherit methods
         super(Spacecraft2d, self).__init__(initState, dt)
 
-        #publisher setup
+        #orbit shape
+        self.orbit = Orbit2d(self)
+
+        #publisher setup for 2d states
         self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
+
+        #publisher setup for 2d orbit
+        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
 
     def applyThrust(delta_v):
         self.currentState[0,2] += delta_v[0, 1]
@@ -75,7 +82,7 @@ class Spacecraft2d(Solver2d):
     def getStates(self):
         return (self.currentState[0,0], self.currentState[0,1], self.currentState[0,2], self.currentState[0,3])
 
-    def publish_data(self, event=None):
+    def publish_states(self, event=None):
         pos_x, pos_y, vel_x, vel_y = self.getStates()
 
         state = State2d()
@@ -85,8 +92,41 @@ class Spacecraft2d(Solver2d):
         self.pubSimulationData.publish(state)
         return
 
+    def publish_orbit_params(self, event=None):
+        #calculate orbit params from current state
+        self.orbit.updateOrbitParams(self)
+        a, e, w, theta = self.orbit.getOrbitParams()
+
+        #Create orbit 2d instace and publish
+        orbit2d = OrbitMsg()
+        orbit2d.a_orbit = a
+        orbit2d.e_orbit = e
+        orbit2d.theta_orbit = theta
+        orbit2d.w_orbit = w
+        self.pubOrbitParams.publish(orbit2d)
+
 class Orbit2d(object):
-    pass
+    def __init__(self, spacecraft):
+        self.id = spacecraft.id
+        self.a_orbit = None
+        self.e_orbit = None
+        self.theta_orbit = None
+        self.w_orbit = None
+
+    def updateOrbitParams(self, spacecraft):
+        #calculate keplerian orbit parameters from state space (r, v)
+        x, y, v_x, v_y = spacecraft.getStates()
+        radius = np.sqrt(x**2 + y**2)
+        self.a_orbit = Solver2d.mi*radius/(2*Solver2d.mi - radius*(v_x**2 + v_y**2))
+        h = x*v_y - y*v_x
+        self.e_orbit = np.sqrt(1 - h**2/(Solver2d.mi*self.a_orbit))
+
+        #fix later
+        self.w_orbit = 0
+        self.theta_orbit = 0
+
+    def getOrbitParams(self):
+        return (self.a_orbit, self.e_orbit, self.w_orbit, self.theta_orbit)
 
 class Maneuever2d(object):
     pass

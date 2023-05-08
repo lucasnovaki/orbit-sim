@@ -39,7 +39,10 @@ if __name__ == '__main__':
         rospy.Timer(rospy.Duration(1.0/1000.0), sc.step)
 
         # Create a ROS Timer for sending data
-        rospy.Timer(rospy.Duration(10.0/1000.0), sc.publish_data)
+        rospy.Timer(rospy.Duration(10.0/1000.0), sc.publish_states)
+
+        # Create a ROS Timer for updating ellipsis shape
+        rospy.Timer(rospy.Duration(100.0/1000.0), sc.publish_orbit_params)
         
         rospy.spin()
 
