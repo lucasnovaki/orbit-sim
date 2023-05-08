@@ -1,4 +1,3 @@
-
 # orbit-sim
 
 2d orbit simulator implemented in ROS
@@ -20,6 +19,9 @@ GIF for demonstration
 ### Background
 
 What is orbit dynamics & Equation of Motion
+```math
+\ddot{r} = -\frac{\mi}{r^{2}}
+```
 
 State space transformation
 
