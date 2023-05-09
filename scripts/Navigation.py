@@ -3,70 +3,34 @@
 # Einbindung der notwendigen Bibliothken
 import rospy
 from std_msgs.msg import String
-import time
+from geometry_msgs.msg import Point
 import numpy as np
-import random
-from turtlesim.srv import TeleportAbsolute
 
-# Definition der globalen Variablen
-message = "Not Caught!"
-move_turtle = False
-
-# Callback-Funktion zum Update der Variablen message
-def callback1(data):
-    global move_turtle
-    global message
-
-    if message == data.data:
-        move_turtle = False
-    else:
-        move_turtle = True
-
+#Global variables
+NODE_RATE = 0.3
 
 # Hauptprogramm
 if __name__ == '__main__':
 
     try:
         # Initialisierung und Start des Nodes
-        rospy.init_node('snake', anonymous=True)
-        
-        # Start des Subscriber
-        sub_turtle1 = rospy.Subscriber("/caught", String, callback1)
-        
+        rospy.init_node('navigation', anonymous=True)
+        r = rospy.Rate(NODE_RATE)
+          
         # Initialisierung des Publisher
-        pub_turtle1 = rospy.Publisher("/talking_turtle", String, queue_size = 20)
+        pub_nav_thrust = rospy.Publisher("/navigation/thrust", Point, queue_size = 1)
         
         # Ausfuehrung der while-Schleife bis der Node gestoppt wird
-        while not rospy.is_shutdown():
-
-            # Ueberpruefung ob die Schildkroete teleoperiert werden muss
-            # hier fehlt noch etwas
-            if(move_turtle):
-
-                # Zuweisung einer Zufallsposition an welche die Schildkroete teleoperiert wird
-                # muss zu gegebener Zeit auskommentiert werden
-                i = random.randint(1, 10)
-                j = random.randint(1, 10)
-                k = random.uniform(0, 2*np.pi)
-
-                # Aufruf des Service zum Teleoperieren der Schildkroete
-                # hier fehlt noch etwas
-                try:
-                    teleport = rospy.ServiceProxy('/turtle2/teleport_absolute', TeleportAbsolute)
-                    resp = teleport(i,j,k)
-                    print ('Teleported!')
-                except rospy.ServiceException, e:
-                    print 'Service call failed'
-                  
+        while not rospy.is_shutdown():              
                 
-                # Publishen der Nachricht, dass die Schildkroete gefangen wurde
-                # hier fehlt noch etwas
-                pub_turtle1.publish('Turtle caught')
+            delta_v = Point()
+            delta_v.x = 0.2*np.random.randn()
+            delta_v.y = 0.2*np.random.randn()
+            delta_v.z = 0
 
-            else:
-                pub_turtle1.publish('Turtle not caught')
+            pub_nav_thrust.publish(delta_v)
 
-            time.sleep(1)
+            r.sleep()
 
     except rospy.ROSInterruptException:
         pass

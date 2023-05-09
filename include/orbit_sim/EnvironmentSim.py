@@ -75,9 +75,9 @@ class Spacecraft2d(Solver2d):
         #publisher setup for 2d orbit
         self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
 
-    def applyThrust(delta_v):
-        self.currentState[0,2] += delta_v[0, 1]
-        self.currentState[0,3] += delta_v[0, 2]
+    def applyThrust(self, delta_v):
+        self.currentState[0,2] += delta_v[0, 0]
+        self.currentState[0,3] += delta_v[0, 1]
 
     def getStates(self):
         return (self.currentState[0,0], self.currentState[0,1], self.currentState[0,2], self.currentState[0,3])

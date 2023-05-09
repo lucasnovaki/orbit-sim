@@ -92,7 +92,7 @@ int main( int argc, char** argv )
   ros::Publisher spacecraft_vel_pub = n.advertise<visualization_msgs::Marker>("spacecraft/spacecraft_velocity", 1);
 
   //Set-up subscriber
-  ros::Subscriber spacecraft_pos_sub = n.subscribe("/simulation_data/states", 20, PosCallback);
+  ros::Subscriber spacecraft_pos_sub = n.subscribe("/simulation_data/states", 1, PosCallback);
   ros::Subscriber ellipsis_sub = n.subscribe("/simulation_data/orbit_params", 1, OrbitCallback);
 
   //dimensions of ellipse
