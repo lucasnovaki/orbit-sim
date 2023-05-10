@@ -114,16 +114,29 @@ class Orbit2d(object):
         self.w_orbit = None
 
     def updateOrbitParams(self, spacecraft):
-        #calculate keplerian orbit parameters from state space (r, v)
+        ### calculate keplerian orbit parameters from state space (r, v)
+
+        #auxiliary vector
         x, y, v_x, v_y = spacecraft.getStates()
         radius = np.sqrt(x**2 + y**2)
-        self.a_orbit = Solver2d.mi*radius/(2*Solver2d.mi - radius*(v_x**2 + v_y**2))
         h = x*v_y - y*v_x
-        self.e_orbit = np.sqrt(1 - h**2/(Solver2d.mi*self.a_orbit))
+        h_vector = np.array([[0, 0, h]])
+        v_vector = np.array([[v_x, v_y, 0]])
+        r_vector = np.array([[x, y, 0]])
+        e_vector = np.cross(v_vector, h_vector)/Solver2d.mi - r_vector/radius
 
-        #fix later
-        self.w_orbit = 0
-        self.theta_orbit = 0
+        #semi-major axis
+        self.a_orbit = Solver2d.mi*radius/(2*Solver2d.mi - radius*(v_x**2 + v_y**2))
+
+        #eccentricity
+        #self.e_orbit = np.sqrt(1 - h**2/(Solver2d.mi*self.a_orbit))
+
+        #eccentricity and omega
+        self.e_orbit = np.linalg.norm(e_vector)
+        self.w_orbit = np.arccos(e_vector[0,0]/self.e_orbit)
+
+        #fix later -- true anomaly
+        self.theta_orbit = np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
 
     def getOrbitParams(self):
         return (self.a_orbit, self.e_orbit, self.w_orbit, self.theta_orbit)
