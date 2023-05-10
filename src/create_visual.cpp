@@ -14,6 +14,14 @@ visualization_msgs::Marker central_body;
 visualization_msgs::Marker spacecraft_body;
 visualization_msgs::Marker spacecraft_velocity;
 
+geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
+    geometry_msgs::Point p_out;
+    p_out.x = cos(angle)*p_in.x - sin(angle)*p_in.y;
+    p_out.y = sin(angle)*p_in.x + cos(angle)*p_in.y;
+    p_out.z = 0;
+    return p_out;
+}
+
 void updateVelocityArrow(geometry_msgs::Vector3 pos, geometry_msgs::Vector3 vel){
     geometry_msgs::Point arrowBegin;
     geometry_msgs::Point arrowEnd;
@@ -71,7 +79,7 @@ void OrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
         p.y = SCALE_FACTOR*y_i;
         p.z = 0;
 
-        ellipsis.points[i] = p;
+        ellipsis.points[i] = rotate2dPoint(p, -orbitParams->w_orbit + M_PI/2);
       }
     }
 

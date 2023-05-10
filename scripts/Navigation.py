@@ -7,7 +7,7 @@ from geometry_msgs.msg import Point
 import numpy as np
 
 #Global variables
-NODE_RATE = 0.3
+NODE_RATE = 0.2
 
 # Hauptprogramm
 if __name__ == '__main__':
