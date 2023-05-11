@@ -4,10 +4,12 @@
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Point
+from orbit_sim.srv import SetNewOrbit
 import numpy as np
 
 ### Global variables
 NODE_RATE = 0.2
+
 
 ### Functions
 
@@ -21,6 +23,22 @@ def applyRandomThrust(pub, std_dev):
     #publish 
     pub.publish(delta_v)
 
+def callbackTransferSrv(target_orbit):
+
+    #init subscriber and get orbit
+    current_orbit = None
+
+    # calculate transfer orbit
+    getControlOutput(target_orbit, current_orbit)
+
+    # instruction needs to be sent to 'scheduler'
+
+    #return message
+    return "[INFO] Target orbit: a = {:.0f}, e = {:.3f}".format(target_orbit.a_orbit, target_orbit.e_orbit)
+
+def getControlOutput(orbit1, orbit2):
+    #move to Navigator2d class (to-do)
+    pass
 
 # Hauptprogramm
 if __name__ == '__main__':
@@ -30,9 +48,10 @@ if __name__ == '__main__':
         rospy.init_node('navigation', anonymous=True)
         r = rospy.Rate(NODE_RATE)
           
-        # Initialisierung des Publisher
+        # Initialisierung des Publisher / Server
         pub_nav_thrust = rospy.Publisher("/navigation/thrust", Point, queue_size = 1)
-        
+        server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, callbackTransferSrv)
+
         # Ausfuehrung der while-Schleife bis der Node gestoppt wird
         while not rospy.is_shutdown():              
                 
