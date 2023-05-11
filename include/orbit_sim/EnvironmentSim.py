@@ -3,6 +3,7 @@ from geometry_msgs.msg import Vector3
 from orbit_sim.msg import State2d
 from orbit_sim.msg import Orbit2d as OrbitMsg
 import rospy
+import math
 
 class Solver2d(object):
 
@@ -131,9 +132,14 @@ class Orbit2d(object):
         #eccentricity
         #self.e_orbit = np.sqrt(1 - h**2/(Solver2d.mi*self.a_orbit))
 
-        #eccentricity and omega
+        #eccentricity
         self.e_orbit = np.linalg.norm(e_vector)
-        self.w_orbit = np.arccos(e_vector[0,0]/self.e_orbit)
+
+        #omega
+        if h > 0: #anti-clock wise
+            self.w_orbit = np.arccos(e_vector[0,0]/self.e_orbit)
+        else:
+            self.w_orbit = 2*math.pi - np.arccos(e_vector[0,0]/self.e_orbit)
 
         #fix later -- true anomaly
         self.theta_orbit = np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
