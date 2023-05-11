@@ -6,8 +6,21 @@ from std_msgs.msg import String
 from geometry_msgs.msg import Point
 import numpy as np
 
-#Global variables
+### Global variables
 NODE_RATE = 0.2
+
+### Functions
+
+def applyRandomThrust(pub, std_dev):
+    #create delta v vector
+    delta_v = Point()
+    delta_v.x = std_dev*np.random.randn()
+    delta_v.y = std_dev*np.random.randn()
+    delta_v.z = 0
+
+    #publish 
+    pub.publish(delta_v)
+
 
 # Hauptprogramm
 if __name__ == '__main__':
@@ -23,12 +36,7 @@ if __name__ == '__main__':
         # Ausfuehrung der while-Schleife bis der Node gestoppt wird
         while not rospy.is_shutdown():              
                 
-            delta_v = Point()
-            delta_v.x = 0.2*np.random.randn()
-            delta_v.y = 0.2*np.random.randn()
-            delta_v.z = 0
-
-            pub_nav_thrust.publish(delta_v)
+            applyRandomThrust(pub_nav_thrust, 0.2)
 
             r.sleep()
 
