@@ -20,7 +20,7 @@ GIF for demonstration
 
 What is orbit dynamics & Equation of Motion
 ```math
-\ddot{r} = -\frac{\mi}{r^{2}}
+\ddot{r} = -\frac{\mu}{r^{2}}
 ```
 
 State space transformation

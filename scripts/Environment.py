@@ -4,6 +4,7 @@
 import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Point
+from orbit_sim.srv import ApplyThrust
 from orbit_sim.EnvironmentSim import *
 import numpy as np
 
@@ -15,6 +16,11 @@ def callbackNavigation(delta_vel):
     global sc
     sc.applyThrust(np.array([[delta_vel.x, delta_vel.y]]) )
     return
+
+def callbackThrustSrv(delta_vel):
+    global sc
+    sc.applyThrust(np.array([[delta_vel.x, delta_vel.y]]) )
+    return "Thrust: delta vel = ({:.4f}, {:.4f})".format(delta_vel.x, delta_vel.y)
     
 # Hauptprogramm
 if __name__ == '__main__':
@@ -29,8 +35,9 @@ if __name__ == '__main__':
         #create spacecraft instance
         sc = Spacecraft2d(0, initState = np.array([initStateParam]), dt = 1)
 
-        #Callback for Navigation node
+        #Callback for Navigation node/Thrust service
         sub_nav_thrust = rospy.Subscriber("/navigation/thrust", Point, callbackNavigation)
+        server_thrust = rospy.Service("/environment/ApplyThrust", ApplyThrust, callbackThrustSrv)
 
         # Create a ROS Timer for numerical simulation update equation
         rospy.Timer(rospy.Duration(1.0/1000.0), sc.step)
