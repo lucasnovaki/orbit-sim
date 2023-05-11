@@ -107,12 +107,15 @@ class Spacecraft2d(Solver2d):
         self.pubOrbitParams.publish(orbit2d)
 
 class Orbit2d(object):
-    def __init__(self, spacecraft):
-        self.id = spacecraft.id
+    def __init__(self, spacecraft = None):
         self.a_orbit = None
         self.e_orbit = None
         self.theta_orbit = None
         self.w_orbit = None
+        if spacecraft:
+            self.id = spacecraft.id
+        else:
+            self.id = None
 
     def updateOrbitParams(self, spacecraft):
         ### calculate keplerian orbit parameters from state space (r, v)

@@ -5,11 +5,11 @@ import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Point
 from orbit_sim.srv import SetNewOrbit
+from orbit_sim.NavigationLib import *
 import numpy as np
 
 ### Global variables
 NODE_RATE = 0.2
-
 
 ### Functions
 
@@ -23,23 +23,6 @@ def applyRandomThrust(pub, std_dev):
     #publish 
     pub.publish(delta_v)
 
-def callbackTransferSrv(target_orbit):
-
-    #init subscriber and get orbit
-    current_orbit = None
-
-    # calculate transfer orbit
-    getControlOutput(target_orbit, current_orbit)
-
-    # instruction needs to be sent to 'scheduler'
-
-    #return message
-    return "[INFO] Target orbit: a = {:.0f}, e = {:.3f}".format(target_orbit.a_orbit, target_orbit.e_orbit)
-
-def getControlOutput(orbit1, orbit2):
-    #move to Navigator2d class (to-do)
-    pass
-
 # Hauptprogramm
 if __name__ == '__main__':
 
@@ -47,17 +30,28 @@ if __name__ == '__main__':
         # Initialisierung und Start des Nodes
         rospy.init_node('navigation', anonymous=True)
         r = rospy.Rate(NODE_RATE)
+
+        #Initialize Navigator and Planner instances 
+        transferPlanner = Planner()
+        spaceNavigator = Navigator2d(transferPlanner)
+
           
         # Initialisierung des Publisher / Server
         pub_nav_thrust = rospy.Publisher("/navigation/thrust", Point, queue_size = 1)
-        server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, callbackTransferSrv)
+        sub_orbit_params = rospy.Subscriber("/simulation_data/orbit_params", OrbitMsg, spaceNavigator.updateCurrentOrbit)
+
+        #server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, callbackTransferSrv)
+        server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, spaceNavigator.callbackSetTransfer)
+        
 
         # Ausfuehrung der while-Schleife bis der Node gestoppt wird
-        while not rospy.is_shutdown():              
-                
-            applyRandomThrust(pub_nav_thrust, 0.2)
+        #while not rospy.is_shutdown():              
+        #applyRandomThrust(pub_nav_thrust, 0.2)
+        #r.sleep()
 
-            r.sleep()
+        # Create a ROS Timer for sending data
+        rospy.Timer(rospy.Duration(10.0/1000.0), transferPlanner.checkForManeuever)
+        rospy.spin()
 
     except rospy.ROSInterruptException:
         pass
