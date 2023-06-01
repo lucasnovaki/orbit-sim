@@ -76,6 +76,9 @@ class Spacecraft2d(Solver2d):
         #publisher setup for 2d orbit
         self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
 
+        #debug publishers
+        self.pubEccentrVector = rospy.Publisher("/debug/e_vector", Vector3, queue_size = 1)
+
     def applyThrust(self, delta_v):
         self.currentState[0,2] += delta_v[0, 0]
         self.currentState[0,3] += delta_v[0, 1]
@@ -106,10 +109,15 @@ class Spacecraft2d(Solver2d):
         orbit2d.w_orbit = w
         self.pubOrbitParams.publish(orbit2d)
 
+        #debug: publish e vector
+        e_vector = self.orbit.e_vector
+        self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
+
 class Orbit2d(object):
     def __init__(self, spacecraft = None):
         self.a_orbit = None
         self.e_orbit = None
+        self.e_vector = None
         self.theta_orbit = None
         self.w_orbit = None
         if spacecraft:
@@ -139,13 +147,16 @@ class Orbit2d(object):
         self.e_orbit = np.linalg.norm(e_vector)
 
         #omega
-        if h > 0: #anti-clock wise
+        if e_vector[0,1] < 0:
             self.w_orbit = np.arccos(e_vector[0,0]/self.e_orbit)
         else:
             self.w_orbit = 2*math.pi - np.arccos(e_vector[0,0]/self.e_orbit)
 
         #fix later -- true anomaly
         self.theta_orbit = np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
+
+        #debug
+        self.e_vector = e_vector
 
     def getOrbitParams(self):
         return (self.a_orbit, self.e_orbit, self.w_orbit, self.theta_orbit)
