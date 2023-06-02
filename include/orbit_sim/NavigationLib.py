@@ -16,6 +16,7 @@ class Navigator2d(object):
         target.a_orbit = orbit_msg.a_orbit
         target.e_orbit = orbit_msg.e_orbit
         target.w_orbit = orbit_msg.w_orbit
+        target.e_vector = target.calculateEccVec()
         self.transfer = self.createTransfer(target)
         print("Transfer created")
 
@@ -35,10 +36,16 @@ class Navigator2d(object):
         self.currentOrbit.a_orbit = current_orbit.a_orbit
         self.currentOrbit.e_orbit = current_orbit.e_orbit
         self.currentOrbit.w_orbit = current_orbit.w_orbit
+        self.currentOrbit.e_vector = self.currentOrbit.calculateEccVec()
 
     def createTransfer(self, targetOrbit):
         if self.currentOrbit:
-            return Transfer2d(targetOrbit, self.currentOrbit)
+            transfer = Transfer2d(targetOrbit, self.currentOrbit)
+            if (transfer.transferOrbit):
+                return transfer
+            else:
+                print("Navigator cannot create transfer because target orbit intersects current orbit")
+                return None
         else:
             print("Navigator cannot create transfer because it has no current orbit info")
             return None
@@ -55,9 +62,35 @@ class Transfer2d(object):
     def calculateTransfer(self):
         #dummy function for testing
         transferOrbit = Orbit2d()
-        maneuever_lst = [([-1.5, 0], 0)]
-        print("Transfer orbit and maneuver list calculated")
-        return transferOrbit, maneuever_lst
+        transferPsbl = self.checkForHohman(self.targetOrbit, self.currentOrbit)
+        if (transferPsbl):
+            maneuever_lst = [([-1.5, 0], 0)]
+            print("Transfer orbit and maneuver list calculated")
+            return transferOrbit, maneuever_lst
+        else:
+            return None, []
+
+    def checkForHohman(self, orbit1, orbit2):
+        # verify that current and target orbit do not intersect
+
+        #check high (extern) and low (intern) energy orbits
+        if orbit1.a_orbit > orbit2.a_orbit:
+            extOrbit = orbit1
+            intOrbit = orbit2
+        else:
+            extOrbit = orbit2
+            intOrbit = orbit1
+
+        #find angle between periapsis lines
+        beta = np.arccos(np.dot(extOrbit.e_vector[0], intOrbit.e_vector[0])/(extOrbit.e_orbit*intOrbit.e_orbit))
+        
+        #check if periapsis of inner orbit is larger than r(beta)
+        r_inner = intOrbit.a_orbit*(1+intOrbit.e_orbit)
+        r_outer = extOrbit.a_orbit*(1-extOrbit.e_orbit**2)/(1+extOrbit.e_orbit*np.cos(beta))
+
+        if r_inner < r_outer: return True
+        else: return False
+
 
 class Planner(object):
     def __init__(self, tol = 0.05):

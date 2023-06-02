@@ -125,6 +125,9 @@ class Orbit2d(object):
         else:
             self.id = None
 
+    def calculateEccVec(self):
+        return self.e_orbit*np.array([[np.cos(self.w_orbit), np.sin(self.w_orbit)]])
+
     def updateOrbitParams(self, spacecraft):
         ### calculate keplerian orbit parameters from state space (r, v)
 
