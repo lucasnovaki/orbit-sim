@@ -152,8 +152,12 @@ class Orbit2d(object):
         else:
             self.w_orbit = 2*math.pi - np.arccos(e_vector[0,0]/self.e_orbit)
 
-        #fix later -- true anomaly
-        self.theta_orbit = np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
+        #true anomaly
+        u_vector = np.cross(h_vector, e_vector)
+        if np.dot(u_vector[0], r_vector[0]) > 0:
+            self.theta_orbit = np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
+        else:
+            self.theta_orbit = 2*math.pi - np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
 
         #debug
         self.e_vector = e_vector
