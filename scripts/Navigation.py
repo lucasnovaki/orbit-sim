@@ -42,7 +42,6 @@ if __name__ == '__main__':
 
         #server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, callbackTransferSrv)
         server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, spaceNavigator.callbackSetTransfer)
-        
 
         # Ausfuehrung der while-Schleife bis der Node gestoppt wird
         #while not rospy.is_shutdown():              

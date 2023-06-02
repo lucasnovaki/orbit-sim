@@ -9,7 +9,8 @@
 #define VISUAL_NODE_RATE 20
 
 //Define global vars
-visualization_msgs::Marker ellipsis;
+visualization_msgs::Marker currentEllipsis;
+visualization_msgs::Marker targetEllipsis;
 visualization_msgs::Marker central_body;
 visualization_msgs::Marker spacecraft_body;
 visualization_msgs::Marker spacecraft_velocity;
@@ -56,8 +57,7 @@ void PosCallback(const orbit_sim::State2d::ConstPtr& state){
     return;
 }
 
-void OrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
-
+void drawEllipsis(const orbit_sim::Orbit2d::ConstPtr& orbitParams, visualization_msgs::Marker& ellipsisObj){
     // Get update values for orbit params
     float current_a_orbit = orbitParams->a_orbit;
     float current_e_orbit = orbitParams->e_orbit;
@@ -67,7 +67,7 @@ void OrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
       
       //calculate orbit shape only if its indeed ellipsis
       float r_pe = current_a_orbit*(1 - current_e_orbit);
-
+        
       // Create the vertices for the lines
       for (uint32_t i = 0; i < 1000; ++i)
       {
@@ -79,12 +79,22 @@ void OrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
         p.y = SCALE_FACTOR*y_i;
         p.z = 0;
 
-        ellipsis.points[i] = rotate2dPoint(p, -orbitParams->w_orbit + M_PI/2);
+        ellipsisObj.points[i] = rotate2dPoint(p, -orbitParams->w_orbit + M_PI/2);
       }
     }
 
     return;
 }
+
+void CurrentOrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
+    drawEllipsis(orbitParams, currentEllipsis);
+}
+
+void TargetOrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams){
+    drawEllipsis(orbitParams, targetEllipsis);
+}
+
+// Define subscriber for target orbit marker
 
 int main( int argc, char** argv )
 {
@@ -95,13 +105,15 @@ int main( int argc, char** argv )
 
   //Set-up publishers for rviz
   ros::Publisher ellipsis_pub = n.advertise<visualization_msgs::Marker>("spacecraft/ellipsis", 1);
+  ros::Publisher tar_ellipsis_pub = n.advertise<visualization_msgs::Marker>("spacecraft/target_ellipsis", 1);
   ros::Publisher central_body_pub = n.advertise<visualization_msgs::Marker>("spacecraft/central_body", 1);
   ros::Publisher spacecraft_body_pub = n.advertise<visualization_msgs::Marker>("spacecraft/spacecraft_body", 1);
   ros::Publisher spacecraft_vel_pub = n.advertise<visualization_msgs::Marker>("spacecraft/spacecraft_velocity", 1);
 
   //Set-up subscriber
   ros::Subscriber spacecraft_pos_sub = n.subscribe("/simulation_data/states", 1, PosCallback);
-  ros::Subscriber ellipsis_sub = n.subscribe("/simulation_data/orbit_params", 1, OrbitCallback);
+  ros::Subscriber ellipsis_sub = n.subscribe("/simulation_data/orbit_params", 1, CurrentOrbitCallback);
+  ros::Subscriber tar_ellipsis_sub = n.subscribe("/navigation/target_orbit_params", 1, TargetOrbitCallback);
 
   //dimensions of ellipse
   float theta = 0;
@@ -111,8 +123,11 @@ int main( int argc, char** argv )
   float b_orbit = 0.7*a_orbit;
 
   // Set the frame ID and timestamp.  See the TF tutorials for information on these.
-  ellipsis.header.frame_id = "visual_frame";
-  ellipsis.header.stamp = ros::Time::now();
+  currentEllipsis.header.frame_id = "visual_frame";
+  currentEllipsis.header.stamp = ros::Time::now();
+
+  targetEllipsis.header.frame_id = "visual_frame";
+  targetEllipsis.header.stamp = ros::Time::now();
 
   central_body.header.frame_id = "visual_frame";
   central_body.header.stamp = ros::Time::now();
@@ -125,8 +140,8 @@ int main( int argc, char** argv )
 
   // Set the namespace and id for this marker.  This serves to create a unique ID
   // Any marker sent with the same namespace and id will overwrite the old one
-  ellipsis.ns = "orbit";
-  ellipsis.id = 0;
+  currentEllipsis.ns = "orbit";
+  currentEllipsis.id = 0;
 
   central_body.ns = "orbit";
   central_body.id = 1;
@@ -137,26 +152,39 @@ int main( int argc, char** argv )
   spacecraft_velocity.ns = "orbit";
   spacecraft_velocity.id = 3;
 
+  targetEllipsis.ns = "orbit";
+  targetEllipsis.id = 4;
+
   // Set the marker type.
-  ellipsis.type = visualization_msgs::Marker::LINE_LIST;
+  currentEllipsis.type = visualization_msgs::Marker::LINE_LIST;
+  targetEllipsis.type = visualization_msgs::Marker::LINE_LIST;
   central_body.type = visualization_msgs::Marker::SPHERE;
   spacecraft_body.type = visualization_msgs::Marker::SPHERE;
   spacecraft_velocity.type = visualization_msgs::Marker::ARROW;
 
   // Set the marker action.  Options are ADD, DELETE, and new in ROS Indigo: 3 (DELETEALL)
-  ellipsis.action = visualization_msgs::Marker::ADD;
+  currentEllipsis.action = visualization_msgs::Marker::ADD;
+  targetEllipsis.action = visualization_msgs::Marker::ADD;
   central_body.action = visualization_msgs::Marker::ADD;
   spacecraft_body.action = visualization_msgs::Marker::ADD;
   spacecraft_velocity.action = visualization_msgs::Marker::ADD;
 
   // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
-  ellipsis.pose.position.x = 0;
-  ellipsis.pose.position.y = 0;
-  ellipsis.pose.position.z = 0;
-  ellipsis.pose.orientation.x = 0.0;
-  ellipsis.pose.orientation.y = 0.0;
-  ellipsis.pose.orientation.z = 0.0;
-  ellipsis.pose.orientation.w = 1.0;
+  currentEllipsis.pose.position.x = 0;
+  currentEllipsis.pose.position.y = 0;
+  currentEllipsis.pose.position.z = 0;
+  currentEllipsis.pose.orientation.x = 0.0;
+  currentEllipsis.pose.orientation.y = 0.0;
+  currentEllipsis.pose.orientation.z = 0.0;
+  currentEllipsis.pose.orientation.w = 1.0;
+
+  targetEllipsis.pose.position.x = 0;
+  targetEllipsis.pose.position.y = 0;
+  targetEllipsis.pose.position.z = 0;
+  targetEllipsis.pose.orientation.x = 0.0;
+  targetEllipsis.pose.orientation.y = 0.0;
+  targetEllipsis.pose.orientation.z = 0.0;
+  targetEllipsis.pose.orientation.w = 1.0;
 
   central_body.pose.position.x = 0;
   central_body.pose.position.y = 0;
@@ -176,7 +204,8 @@ int main( int argc, char** argv )
 
 
   // Set the scale of the marker
-  ellipsis.scale.x = 0.1;
+  currentEllipsis.scale.x = 0.1;
+  targetEllipsis.scale.x = 0.1;
 
   central_body.scale.x = SCALE_FACTOR*13000;
   central_body.scale.y = SCALE_FACTOR*13000;
@@ -191,10 +220,15 @@ int main( int argc, char** argv )
   spacecraft_velocity.scale.z = 0.4;
 
   // Set the color -- be sure to set alpha to something non-zero!
-  ellipsis.color.r = 0.0f;
-  ellipsis.color.g = 1.0f;
-  ellipsis.color.b = 0.0f;
-  ellipsis.color.a = 1.0;
+  currentEllipsis.color.r = 0.0f;
+  currentEllipsis.color.g = 1.0f;
+  currentEllipsis.color.b = 0.0f;
+  currentEllipsis.color.a = 1.0;
+
+  targetEllipsis.color.r = 1.0f;
+  targetEllipsis.color.g = 0.0f;
+  targetEllipsis.color.b = 1.0f;
+  targetEllipsis.color.a = 1.0;
 
   central_body.color.r = 1.0f;
   central_body.color.g = 0.0f;
@@ -212,7 +246,8 @@ int main( int argc, char** argv )
   spacecraft_velocity.color.a = 1.0;
 
 
-  ellipsis.lifetime = ros::Duration();
+  currentEllipsis.lifetime = ros::Duration();
+  targetEllipsis.lifetime = ros::Duration(); 
   central_body.lifetime = ros::Duration();
   spacecraft_body.lifetime = ros::Duration();
 
@@ -227,7 +262,8 @@ int main( int argc, char** argv )
     p.y = SCALE_FACTOR*y;
     p.z = 0;
 
-    ellipsis.points.push_back(p);
+    currentEllipsis.points.push_back(p);
+    targetEllipsis.points.push_back(p);
   }
 
   //create initial velocity arrow
@@ -256,7 +292,8 @@ int main( int argc, char** argv )
     }
 
     ros::spinOnce();
-    ellipsis_pub.publish(ellipsis);
+    ellipsis_pub.publish(currentEllipsis);
+    tar_ellipsis_pub.publish(targetEllipsis);
     central_body_pub.publish(central_body);
     spacecraft_body_pub.publish(spacecraft_body);
     spacecraft_vel_pub.publish(spacecraft_velocity);

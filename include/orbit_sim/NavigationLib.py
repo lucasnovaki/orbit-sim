@@ -8,6 +8,7 @@ class Navigator2d(object):
     def __init__(self, planner):
         self.planner = planner
         self.currentOrbit = Orbit2d()
+        self.pubTargetOrbit = rospy.Publisher("/navigation/target_orbit_params", OrbitMsg, queue_size = 1)
 
     def callbackSetTransfer(self, orbit_msg):
 
@@ -23,6 +24,14 @@ class Navigator2d(object):
         #let planner handle it
         if (self.transfer): 
             self.pushToPlanner(self.transfer)
+
+            #publish target to createvisual
+            targetMsg = OrbitMsg()
+            targetMsg.a_orbit = self.transfer.targetOrbit.a_orbit
+            targetMsg.e_orbit = self.transfer.targetOrbit.e_orbit
+            targetMsg.w_orbit = self.transfer.targetOrbit.w_orbit
+            self.pubTargetOrbit.publish(targetMsg)
+
             return "Transfer planned."
         else:
             return "Error with transfer planning"
@@ -64,7 +73,7 @@ class Transfer2d(object):
         transferOrbit = Orbit2d()
         transferPsbl = self.checkForHohman(self.targetOrbit, self.currentOrbit)
         if (transferPsbl):
-            maneuever_lst = [([-1.5, 0], 0)]
+            maneuever_lst = [([0, 0], 0)]
             print("Transfer orbit and maneuver list calculated")
             return transferOrbit, maneuever_lst
         else:
