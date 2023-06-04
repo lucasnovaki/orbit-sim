@@ -80,6 +80,10 @@ class Spacecraft2d(Solver2d):
         self.pubEccentrVector = rospy.Publisher("/debug/e_vector", Vector3, queue_size = 1)
 
     def applyThrust(self, delta_v):
+
+        theta = np.arctan2(self.currentState[0,0], self.currentState[0,1])
+        delta_v = np.matmul(self.getRotMatrix(theta), delta_v.transpose()).transpose()
+
         self.currentState[0,2] += delta_v[0, 0]
         self.currentState[0,3] += delta_v[0, 1]
 
