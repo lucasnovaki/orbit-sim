@@ -81,7 +81,7 @@ class Spacecraft2d(Solver2d):
 
     def applyThrust(self, delta_v):
 
-        theta = np.arctan2(self.currentState[0,0], self.currentState[0,1])
+        theta = np.arctan2(self.currentState[0,1], self.currentState[0,0])
         delta_v = np.matmul(self.getRotMatrix(theta), delta_v.transpose()).transpose()
 
         self.currentState[0,2] += delta_v[0, 0]
@@ -118,12 +118,16 @@ class Spacecraft2d(Solver2d):
         self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
 
 class Orbit2d(object):
-    def __init__(self, spacecraft = None):
-        self.a_orbit = None
-        self.e_orbit = None
-        self.e_vector = None
+    def __init__(self, spacecraft = None, orbitMsg = None):
+        if orbitMsg:
+            self.setOrbit(orbitMsg)
+        else:
+            self.a_orbit = None
+            self.e_orbit = None
+            self.w_orbit = None
+            self.e_vector = None
+
         self.theta_orbit = None
-        self.w_orbit = None
         if spacecraft:
             self.id = spacecraft.id
         else:
@@ -148,9 +152,6 @@ class Orbit2d(object):
         self.a_orbit = Solver2d.mi*radius/(2*Solver2d.mi - radius*(v_x**2 + v_y**2))
 
         #eccentricity
-        #self.e_orbit = np.sqrt(1 - h**2/(Solver2d.mi*self.a_orbit))
-
-        #eccentricity
         self.e_orbit = np.linalg.norm(e_vector)
 
         #omega
@@ -169,8 +170,23 @@ class Orbit2d(object):
         #debug
         self.e_vector = e_vector
 
+    def setOrbit(self, orbitMsg):
+        self.a_orbit = orbitMsg.a_orbit
+        self.e_orbit = orbitMsg.e_orbit
+        self.w_orbit = orbitMsg.w_orbit
+        self.e_vector = self.calculateEccVec()
+
     def getOrbitParams(self):
         return (self.a_orbit, self.e_orbit, self.w_orbit, self.theta_orbit)
+    
+    def toOrbitMsg(self):
+        msg = OrbitMsg()
+        msg.a_orbit = self.a_orbit
+        msg.e_orbit = self.e_orbit
+        msg.w_orbit = self.w_orbit
+        return msg
+
+
 
 class Maneuever2d(object):
     pass

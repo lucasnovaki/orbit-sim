@@ -15,11 +15,8 @@ class Navigator2d(object):
     def callbackSetTransfer(self, orbit_msg):
 
         #create new transfer instance
-        target = Orbit2d()
-        target.a_orbit = orbit_msg.a_orbit
-        target.e_orbit = orbit_msg.e_orbit
-        target.w_orbit = self.currentOrbit.w_orbit
-        target.e_vector = target.calculateEccVec()
+        orbit_msg.w_orbit = self.currentOrbit.w_orbit #apply restriction w_1 = w_2
+        target = Orbit2d(orbitMsg= orbit_msg)
         self.transfer = self.createTransfer(target)
         print("Transfer created")
 
@@ -28,13 +25,10 @@ class Navigator2d(object):
             self.pushToPlanner(self.transfer)
 
             #publish target to createvisual
-            targetMsg = OrbitMsg()
-            targetMsg.a_orbit = self.transfer.targetOrbit.a_orbit
-            targetMsg.e_orbit = self.transfer.targetOrbit.e_orbit
-            targetMsg.w_orbit = self.transfer.targetOrbit.w_orbit
+            targetMsg = self.transfer.targetOrbit.toOrbitMsg()
             self.pubTargetOrbit.publish(targetMsg)
-
             return "Transfer planned."
+        
         else:
             return "Error with transfer planning"
 
@@ -44,10 +38,7 @@ class Navigator2d(object):
         self.planner.currentTheta = current_orbit.theta_orbit
 
         #update current orbit for next transfers
-        self.currentOrbit.a_orbit = current_orbit.a_orbit
-        self.currentOrbit.e_orbit = current_orbit.e_orbit
-        self.currentOrbit.w_orbit = current_orbit.w_orbit
-        self.currentOrbit.e_vector = self.currentOrbit.calculateEccVec()
+        self.currentOrbit.setOrbit(current_orbit)
 
     def createTransfer(self, targetOrbit):
         if self.currentOrbit:
