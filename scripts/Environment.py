@@ -33,7 +33,7 @@ if __name__ == '__main__':
         initStateParam = rospy.get_param('/initialState')
 
         #create spacecraft instance
-        sc = Spacecraft2d(0, initState = np.array([initStateParam]), dt = 2.5)
+        sc = Spacecraft2d(0, initState = np.array([initStateParam]), dt = 1)
 
         #Callback for Navigation node/Thrust service
         sub_nav_thrust = rospy.Subscriber("/navigation/thrust", Point, callbackNavigation)

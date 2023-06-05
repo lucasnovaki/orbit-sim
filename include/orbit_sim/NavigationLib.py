@@ -1,5 +1,6 @@
 import numpy as np
 from orbit_sim.EnvironmentSim import Orbit2d, Solver2d
+from geometry_msgs.msg import Point
 from orbit_sim.msg import Orbit2d as OrbitMsg
 from orbit_sim.srv import ApplyThrust
 import rospy
@@ -135,12 +136,18 @@ class Planner(object):
         self.currentManeuever = None
         self.tol = tol # tolerance to detect maneuever point
         self.transfer_programmed = 0
+
+        ## communication
         self.clientApplyThrust = rospy.ServiceProxy("/environment/ApplyThrust", ApplyThrust)
+        self.pubApplyThrust = rospy.Publisher("/navigation/thrust", Point, queue_size = 1)
 
     def checkForManeuever(self, orbit_msg):
         #callback from ros timer
         if self.transfer_programmed:
-            if abs(self.currentTheta - self.currentManeuever[1]) < self.tol:
+            C1 = (abs(self.currentTheta - self.currentManeuever[1]) < self.tol)
+            C2 = (abs(self.currentTheta + 2*math.pi - self.currentManeuever[1]) < self.tol)
+            C3 = (abs(self.currentTheta - 2*math.pi - self.currentManeuever[1]) < self.tol)
+            if C1 or C2 or C3:
                 self.executeManeuever(self.currentManeuever[0]) 
 
     def programTransfer(self, transfer):
@@ -152,10 +159,13 @@ class Planner(object):
 
     def executeManeuever(self, dv):
         #call thrust service
-        dv_x = dv[0]
-        dv_y = dv[1]
-        self.clientApplyThrust(dv_x, dv_y)
-        print('Thrust applied: dv = ({:.2f}, {:.2f})'.format(dv_x, dv_y))
+        #self.clientApplyThrust(dv[0], dv[1])
+        p = Point()
+        p.x = dv[0]
+        p.y = dv[1]
+        p.z = 0
+        self.pubApplyThrust.publish(p)
+        print('Thrust applied: dv = ({:.2f}, {:.2f})'.format(dv[0], dv[1]))
 
         if len(self.queue) == 0:
             # if queue empty stop checking for theta
