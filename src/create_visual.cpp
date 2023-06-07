@@ -13,12 +13,12 @@ int main( int argc, char** argv )
   ros::NodeHandle n;
   ros::Rate r(VISUAL_NODE_RATE);
 
+  //Setup drawer instance
+  Drawer drawer;
+  drawer.SetUp(n);
+
   while (ros::ok())
   {
-
-    //Setup
-    Drawer drawer;
-    drawer.SetUp(n);
 
     // Publish the marker
     while (drawer.ellipsis_pub.getNumSubscribers() < 1)
@@ -32,11 +32,7 @@ int main( int argc, char** argv )
     }
 
     ros::spinOnce();
-    drawer.ellipsis_pub.publish(drawer.currentEllipsis);
-    drawer.tar_ellipsis_pub.publish(drawer.targetEllipsis);
-    drawer.central_body_pub.publish(drawer.central_body);
-    drawer.spacecraft_body_pub.publish(drawer.spacecraft_body);
-    drawer.spacecraft_vel_pub.publish(drawer.spacecraft_velocity);
+    drawer.PublishMarkers();
 
     r.sleep();
   }
