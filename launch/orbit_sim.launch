@@ -12,4 +12,7 @@
      <!-- Start Simulation node -->
     <node pkg="orbit_sim" name="Environment" type="Environment.py"/>
 
+    <!-- Start Navigation node -->
+    <node pkg="orbit_sim" name="Navigation" type="Navigation.py"/>
+
 </launch>
