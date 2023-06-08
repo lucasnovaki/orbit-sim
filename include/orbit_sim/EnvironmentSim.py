@@ -77,10 +77,10 @@ class Spacecraft2d(Solver2d):
         self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
 
         #debug publishers
-        self.pubEccentrVector = rospy.Publisher("/debug/e_vector", Vector3, queue_size = 1)
+        self.pubEccentrVector = rospy.Publisher("/simulation_debug/e_vector", Vector3, queue_size = 1)
 
     def applyThrust(self, delta_v):
-
+        # delta_v = (dx, dy) in spacecraft reference frame
         theta = np.arctan2(self.currentState[0,1], self.currentState[0,0])
         delta_v = np.matmul(self.getRotMatrix(theta), delta_v.transpose()).transpose()
 
