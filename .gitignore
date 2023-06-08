@@ -1,0 +1,5 @@
+sketch/
+/include/notebooks/
+*.pyc
+log/
+settings.json
