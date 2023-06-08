@@ -232,6 +232,7 @@ void Drawer::SetScales(){
 void Drawer::MarkerSetUp(){
   // Basic Setup
   Drawer::MarkerBasicSetUp(this->currentEllipsis, 0);
+  Drawer::MarkerBasicSetUp(this->targetEllipsis, 1);
   Drawer::MarkerBasicSetUp(this->central_body, 2);
   Drawer::MarkerBasicSetUp(this->spacecraft_body, 3);
   Drawer::MarkerBasicSetUp(this->spacecraft_velocity, 4);
@@ -261,12 +262,9 @@ void Drawer::MarkerSetUp(){
   // Create the vertices for the lines
   for (uint32_t i = 0; i < 1000; ++i)
   {
-    float x = b_orbit * cos(i / 1000.0f * 2 * M_PI);
-    float y = a_orbit * (sin(i / 1000.0f * 2 * M_PI) + 1) - r_pe;
-
     geometry_msgs::Point p;
-    p.x = SCALE_FACTOR*x;
-    p.y = SCALE_FACTOR*y;
+    p.x = 0;
+    p.y = 0;
     p.z = 0;
 
     this->currentEllipsis.points.push_back(p);
@@ -275,14 +273,9 @@ void Drawer::MarkerSetUp(){
 
   //create initial velocity arrow
   geometry_msgs::Point arrowBegin = spacecraft_body.pose.position;
-
-  geometry_msgs::Point arrowEnd;
-  arrowEnd.x = arrowBegin.x + 6;
-  arrowEnd.y = 0;
-  arrowEnd.z = 0;
-
   this->spacecraft_velocity.points.push_back(arrowBegin);
-  this->spacecraft_velocity.points.push_back(arrowEnd);
+  this->spacecraft_velocity.points.push_back(arrowBegin);
+
   return;
 }
 
