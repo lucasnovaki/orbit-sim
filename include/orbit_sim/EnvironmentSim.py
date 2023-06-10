@@ -1,6 +1,6 @@
 import numpy as np
 from geometry_msgs.msg import Vector3
-from orbit_sim.msg import State2d
+from orbit_sim.msg import State2d, Orbits
 from orbit_sim.msg import Orbit2d as OrbitMsg
 import rospy
 import math
@@ -15,31 +15,50 @@ class Solver2d(object):
     a_orbit = (r_pe + r_apo)/2 #km
     v_pe = np.sqrt(mi*(2/r_pe - 1/a_orbit))
 
-    def __init__(self, initState, dt):
+    def __init__(self, dt):
         #solver variables
         self.dt = dt
         self.currentTime = 0
-        self.initState = initState
-        self.currentState = initState
+
+        #spacecrafts
+        self.lst_ids = list()
+        self.spacecrafts = dict()
+
+        #publisher setup for 2d states
+        self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
+
+        #publisher setup for 2d orbit
+        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
+
+        #debug publishers
+        self.pubEccentrVector = rospy.Publisher("/simulation_debug/e_vector", Vector3, queue_size = 1)
     
     def step(self, event=None):
 
-        #get derivative
-        self.diff = self.calculateDerivative()
-
-        #integration
-        self.currentState = self.currentState + self.diff*self.dt
+        for id in self.lst_ids:
+            self.spacecrafts[id] = self.integrate(self.spacecrafts[id])
 
         #update time
         self.currentTime += self.dt
 
-    def calculateDerivative(self):
+    def integrate(self, sc):
+        #integrates states of spacecraft and returns updated object
+
+        #get derivative
+        diff = self.calculateDerivative(sc)
+
+        #integration
+        sc.currentState = sc.currentState + diff*self.dt
+
+        return sc
+
+    def calculateDerivative(self, sc):
 
         #so it is easier to manipulate
-        x = self.currentState[0,0]
-        y = self.currentState[0,1]
-        dx = self.currentState[0,2]
-        dy = self.currentState[0,3]
+        x = sc.currentState[0,0]
+        y = sc.currentState[0,1]
+        dx = sc.currentState[0,2]
+        dy = sc.currentState[0,3]
 
         #calculate rotation matrix from current state
         theta = np.arctan2(y, x)
@@ -52,37 +71,73 @@ class Solver2d(object):
         diffGlobal = np.vstack(( np.array([[dx],[dy]]), np.matmul(rotMatrix, ddxTang) )).transpose()
 
         return diffGlobal
+    
+    def add_spacecraft(self, id, initState):
+        self.lst_ids.append(id)
+        self.spacecrafts[id] = Spacecraft2d(id, initState)
+        rospy.loginfo("Spacecraft {:d} added.".format(id))
 
-    def getRotMatrix(self, alpha):
+    def remove_spacecraft(self, id):
+        self.lst_ids.remove(id)
+        self.spacecrafts.pop(id)
+        rospy.loginfo("Spacecraft {:d} deleted.".format(id))
+    
+    def publish_states(self, event=None):
+
+        state = State2d()
+        for id in self.lst_ids:
+            sc = self.spacecrafts[id]
+            pos_x, pos_y, vel_x, vel_y = sc.getStates()
+
+            state.id.append(id)
+            state.position.append(Vector3(pos_x, pos_y, 0))
+            state.velocity.append(Vector3(vel_x, vel_y, 0))
+
+        self.pubSimulationData.publish(state)
+        return
+
+    def publish_orbit_params(self, event=None):
+        orbitsMsg = Orbits()
+        for id in self.lst_ids:
+            orbitsMsg.id.append(id)
+            sc = self.spacecrafts[id]
+
+            #calculate orbit params from current state
+            sc.orbit.updateOrbitParams(sc)
+            orbit_msg = sc.orbit.ToOrbitMsg()
+
+            #append to list
+            orbitsMsg.orbit.append(orbit_msg)
+
+            #debug: publish e vector
+            #e_vector = sc.orbit.e_vector
+          
+        self.pubOrbitParams.publish(orbitsMsg)
+        #self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
+        return
+
+
+    @classmethod
+    def getRotMatrix(cls, alpha):
         return np.array([[np.cos(alpha), -np.sin(alpha)],
                          [np.sin(alpha),np.cos(alpha)]])
 
 
-class Spacecraft2d(Solver2d):
-    def __init__(self, id, initState = np.array([[0, -15150.0, 6.436, 0]]), dt = 1):
+class Spacecraft2d(object):
+    def __init__(self, id, initState = np.array([[0, -15150.0, 6.436, 0]])):
 
         #spacecraft id
         self.id = id
-
-        #initialize solver and inherit methods
-        super(Spacecraft2d, self).__init__(initState, dt)
+        self.initState = initState
+        self.currentState = initState
 
         #orbit shape
         self.orbit = Orbit2d(self)
 
-        #publisher setup for 2d states
-        self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
-
-        #publisher setup for 2d orbit
-        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
-
-        #debug publishers
-        self.pubEccentrVector = rospy.Publisher("/simulation_debug/e_vector", Vector3, queue_size = 1)
-
     def applyThrust(self, delta_v):
         # delta_v = (dx, dy) in spacecraft reference frame
         theta = np.arctan2(self.currentState[0,1], self.currentState[0,0])
-        delta_v = np.matmul(self.getRotMatrix(theta), delta_v.transpose()).transpose()
+        delta_v = np.matmul(Solver2d.getRotMatrix(theta), delta_v.transpose()).transpose()
 
         self.currentState[0,2] += delta_v[0, 0]
         self.currentState[0,3] += delta_v[0, 1]
@@ -90,48 +145,24 @@ class Spacecraft2d(Solver2d):
     def getStates(self):
         return (self.currentState[0,0], self.currentState[0,1], self.currentState[0,2], self.currentState[0,3])
 
-    def publish_states(self, event=None):
-        pos_x, pos_y, vel_x, vel_y = self.getStates()
-
-        state = State2d()
-        state.position = Vector3(pos_x, pos_y, 0)
-        state.velocity = Vector3(vel_x, vel_y, 0)
-
-        self.pubSimulationData.publish(state)
-        return
-
-    def publish_orbit_params(self, event=None):
-        #calculate orbit params from current state
-        self.orbit.updateOrbitParams(self)
-        a, e, w, theta = self.orbit.getOrbitParams()
-
-        #Create orbit 2d instace and publish
-        orbit2d = OrbitMsg()
-        orbit2d.a_orbit = a
-        orbit2d.e_orbit = e
-        orbit2d.theta_orbit = theta
-        orbit2d.w_orbit = w
-        self.pubOrbitParams.publish(orbit2d)
-
-        #debug: publish e vector
-        e_vector = self.orbit.e_vector
-        self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
-
 class Orbit2d(object):
     def __init__(self, spacecraft = None, orbitMsg = None):
-        if orbitMsg:
-            self.setOrbit(orbitMsg)
-        else:
-            self.a_orbit = None
-            self.e_orbit = None
-            self.w_orbit = None
-            self.e_vector = None
 
+        #init fields
+        self.a_orbit = None
+        self.e_orbit = None
+        self.w_orbit = None
+        self.e_vector = None
         self.theta_orbit = None
+        self.id = None
+
         if spacecraft:
             self.id = spacecraft.id
-        else:
-            self.id = None
+            self.updateOrbitParams(spacecraft)
+
+        elif orbitMsg:
+            self.setOrbit(orbitMsg)
+        
 
     def calculateEccVec(self):
         return self.e_orbit*np.array([[np.cos(self.w_orbit), np.sin(self.w_orbit)]])
@@ -170,10 +201,13 @@ class Orbit2d(object):
         #debug
         self.e_vector = e_vector
 
-    def setOrbit(self, orbitMsg):
-        self.a_orbit = orbitMsg.a_orbit
-        self.e_orbit = orbitMsg.e_orbit
-        self.w_orbit = orbitMsg.w_orbit
+    def setOrbit(self, orbit):
+        if type(orbit) is tuple:
+            self.a_orbit, self.e_orbit, self.w_orbit = orbit
+        else:        
+            self.a_orbit = orbit.a_orbit
+            self.e_orbit = orbit.e_orbit
+            self.w_orbit = orbit.w_orbit
         self.e_vector = self.calculateEccVec()
 
     def getOrbitParams(self):
@@ -185,9 +219,4 @@ class Orbit2d(object):
         msg.e_orbit = self.e_orbit
         msg.w_orbit = self.w_orbit
         return msg
-
-
-
-class Maneuever2d(object):
-    pass
 

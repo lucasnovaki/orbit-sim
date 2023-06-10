@@ -55,6 +55,7 @@ add_message_files(
   FILES
   State2d.msg
   Orbit2d.msg
+  Orbits.msg
 )
 
 ## Generate services in the 'srv' folder

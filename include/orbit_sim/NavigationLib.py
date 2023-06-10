@@ -9,20 +9,20 @@ import math
 class Navigator2d(object):
     def __init__(self, planner):
         self.planner = planner
-        self.currentOrbit = Orbit2d()
+        self.currentOrbit = dict()
         self.pubTargetOrbit = rospy.Publisher("/navigation/target_orbit_params", OrbitMsg, queue_size = 1)
 
-    def callbackSetTransfer(self, orbit_msg):
+    def callbackSetTransfer(self, srv_msg):
 
         #create new transfer instance
-        orbit_msg.w_orbit = self.currentOrbit.w_orbit #apply restriction w_1 = w_2
-        target = Orbit2d(orbitMsg= orbit_msg)
+        srv_msg.w_orbit = self.currentOrbit[srv_msg.id].w_orbit #apply restriction w_1 = w_2
+        target = Orbit2d(orbitMsg= srv_msg)
         self.transfer = self.createTransfer(target)
         rospy.loginfo("Transfer created")
 
         #let planner handle it
         if (self.transfer): 
-            self.pushToPlanner(self.transfer)
+            self.pushToPlanner(srv_msg.id, self.transfer)
 
             #publish target to createvisual
             targetMsg = self.transfer.targetOrbit.toOrbitMsg()
@@ -33,16 +33,25 @@ class Navigator2d(object):
             return "Error with transfer planning"
 
 
-    def updateCurrentOrbit(self, current_orbit):
-        #update true anomaly for planner 
-        self.planner.currentTheta = current_orbit.theta_orbit
+    def updateCurrentOrbit(self, Orbits):
+    
+        for id, orbit in zip(Orbits.id, Orbits.orbit):
+            
+            if id not in self.currentOrbit.keys():
+                #create new dict entry if spacecraft is new
+                self.currentOrbit[id] = Orbit2d(orbitMsg = orbit)
+            else:
+                #update current orbit for next transfers
+                self.currentOrbit[id].setOrbit(orbit)
 
-        #update current orbit for next transfers
-        self.currentOrbit.setOrbit(current_orbit)
+            #update true anomaly for planner 
+            self.planner.currentTheta[id] = orbit.theta
 
-    def createTransfer(self, targetOrbit):
-        if self.currentOrbit:
-            transfer = Transfer2d(targetOrbit, self.currentOrbit)
+            
+
+    def createTransfer(self, id, targetOrbit):
+        if self.currentOrbit[id]:
+            transfer = Transfer2d(targetOrbit, self.currentOrbit[id])
             if (transfer.transferOrbit):
                 return transfer
             else:
@@ -52,8 +61,8 @@ class Navigator2d(object):
             rospy.logerr("Navigator cannot create transfer because it has no current orbit info")
             return None
 
-    def pushToPlanner(self, transfer):
-        self.planner.programTransfer(transfer)
+    def pushToPlanner(self, id, transfer):
+        self.planner.programTransfer(id, transfer)
 
 class Transfer2d(object):
     def __init__(self, targetOrbit, currentOrbit):
@@ -134,9 +143,8 @@ class Transfer2d(object):
 
 class Planner(object):
     def __init__(self, tol = 0.025):
-        self.queue = []
-        self.currentTheta = None
-        self.currentManeuever = None
+        self.queues = dict()
+        self.currentTheta = dict()
         self.tol = tol # tolerance to detect maneuever point [rad]
         self.transfer_programmed = 0
 
@@ -146,37 +154,33 @@ class Planner(object):
 
     def checkForManeuever(self, orbit_msg):
         #callback from ros timer to verify point of maneuver
-        if self.transfer_programmed:
-            C1 = (abs(self.currentTheta - self.currentManeuever[1]) < self.tol)
-            C2 = (abs(self.currentTheta + 2*math.pi - self.currentManeuever[1]) < self.tol)
-            C3 = (abs(self.currentTheta - 2*math.pi - self.currentManeuever[1]) < self.tol)
+        for id in self.queues.keys():
+            currentManeuver = self.queues[id][0]
+            C1 = (abs(self.currentTheta[id] - currentManeuver) < self.tol)
+            C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver) < self.tol)
+            C3 = (abs(self.currentTheta[id] - 2*math.pi - currentManeuver) < self.tol)
             if C1 or C2 or C3:
-                self.executeManeuever(self.currentManeuever[0]) 
+                self.executeManeuever(id, currentManeuver) 
 
-    def programTransfer(self, transfer):
+    def programTransfer(self, id, transfer):
+        
+        #start queue if sc is new
+        if id not in self.queues.keys(): self.queues[id] = []
+
         # place planned kick burn at the queue end
-        self.queue.extend(transfer.maneuever_lst)
-        rospy.loginfo("Current maneuver queue: {}".format(str(transfer.maneuever_lst)))
+        self.queues[id].extend(transfer.maneuever_lst)
 
-        #update current maneuver 
-        if not self.transfer_programmed:
-            self.currentManeuever = self.queue.pop(0)
-            self.transfer_programmed = 1
+        rospy.loginfo("Current maneuver for queue {:d}: {}".format(id, str(transfer.maneuever_lst)))
 
-    def executeManeuever(self, dv):
+
+    def executeManeuever(self, id, dv):
         #call thrust service/ publish thrust msg
-        #self.clientApplyThrust(dv[0], dv[1])
-        p = Point()
-        p.x = dv[0]
-        p.y = dv[1]
-        p.z = 0
-        self.pubApplyThrust.publish(p)
+        self.clientApplyThrust(id, dv[0], dv[1])
         rospy.loginfo('Thrust published: dv = ({:.2f}, {:.2f})'.format(dv[0], dv[1]))
 
-        if len(self.queue) == 0:
-            # if queue empty stop checking for theta
-            self.transfer_programmed = 0
-        else:
-            #get next maneuver
-            self.currentManeuever = self.queue.pop(0)
+        self.queues[id].pop(0)
+
+        if len(self.queues[id]) == 0:
+            # if list empty stop checking for this spacecraft
+            self.queues[id].pop(id)
 
