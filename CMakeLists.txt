@@ -56,6 +56,7 @@ add_message_files(
   State2d.msg
   Orbit2d.msg
   Orbits.msg
+  BodyID.msg
 )
 
 ## Generate services in the 'srv' folder
@@ -63,6 +64,8 @@ add_service_files(
    FILES
    ApplyThrust.srv
    SetNewOrbit.srv
+   Spawn.srv
+   Delete.srv
  )
 
 ## Generate actions in the 'action' folder

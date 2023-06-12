@@ -37,10 +37,7 @@ if __name__ == '__main__':
         #Initialize environment solver
         solver = Solver2d(dt = 1)
         
-        #get initial conditions and add first sc 
-        initStateParam = rospy.get_param('/initialState')
-        id = 1
-        solver.add_spacecraft(id, np.array([initStateParam]))
+        #solver.add_spacecraft(id, np.array([initStateParam]))
 
         #Callback for Navigation node/Thrust service
         sub_nav_thrust = rospy.Subscriber("/navigation/thrust", Point, callbackNavigation)
