@@ -1,6 +1,6 @@
 import numpy as np
 from geometry_msgs.msg import Vector3
-from orbit_sim.msg import State2d, Orbits
+from orbit_sim.msg import State2d, Orbits, BodyID
 from orbit_sim.msg import Orbit2d as OrbitMsg
 import rospy
 import math
@@ -24,15 +24,6 @@ class Solver2d(object):
         self.lst_ids = list()
         self.spacecrafts = dict()
 
-        #publisher setup for 2d states
-        self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
-
-        #publisher setup for 2d orbit
-        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", Orbits, queue_size = 1)
-
-        #debug publishers
-        self.pubEccentrVector = rospy.Publisher("/simulation_debug/e_vector", Vector3, queue_size = 1)
-    
     def step(self, event=None):
 
         for id in self.lst_ids:
@@ -73,15 +64,40 @@ class Solver2d(object):
         return diffGlobal
     
     def add_spacecraft(self, id, initState):
-        self.lst_ids.append(id)
         self.spacecrafts[id] = Spacecraft2d(id, initState)
+        self.lst_ids.append(id)
         rospy.loginfo("Spacecraft {:d} added.".format(id))
 
     def remove_spacecraft(self, id):
         self.lst_ids.remove(id)
         self.spacecrafts.pop(id)
         rospy.loginfo("Spacecraft {:d} deleted.".format(id))
+
+    @classmethod
+    def getRotMatrix(cls, alpha):
+        return np.array([[np.cos(alpha), -np.sin(alpha)],
+                         [np.sin(alpha),np.cos(alpha)]])
     
+class SolverInterface(Solver2d):
+
+    def __init__(self, dt):
+
+        #initialize 2d solver and inherit methods
+        super(SolverInterface, self).__init__(dt)
+
+        #publisher setup for 2d states
+        self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
+
+        #publisher setup for 2d orbit
+        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", Orbits, queue_size = 1)
+
+        #debug publishers
+        self.pubEccentrVector = rospy.Publisher("/simulation_debug/e_vector", Vector3, queue_size = 1)
+
+        #subscriber setup
+        self.subSpawnerAdd = rospy.Subscriber("/SpawnControl/spawn", State2d, self.callbackSpawnerAdd)
+        self.subSpawnerDelete = rospy.Subscriber("/SpawnControl/delete", BodyID, self.callbackSpawnerDelete)
+
     def publish_states(self, event=None):
 
         state = State2d()
@@ -93,7 +109,8 @@ class Solver2d(object):
             state.position.append(Vector3(pos_x, pos_y, 0))
             state.velocity.append(Vector3(vel_x, vel_y, 0))
 
-        self.pubSimulationData.publish(state)
+        if len(self.lst_ids)>0:
+            self.pubSimulationData.publish(state)
         return
 
     def publish_orbit_params(self, event=None):
@@ -115,12 +132,17 @@ class Solver2d(object):
         self.pubOrbitParams.publish(orbitsMsg)
         #self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
         return
+    
+    def callbackSpawnerAdd(self, state_msg):
+        if state_msg.id[0] not in self.lst_ids:
+            pos = state_msg.position[0]
+            vel = state_msg.velocity[0]
+            initState = np.array([[pos.x, pos.y, vel.x, vel.y]])
+            self.add_spacecraft(state_msg.id[0], initState)
 
-
-    @classmethod
-    def getRotMatrix(cls, alpha):
-        return np.array([[np.cos(alpha), -np.sin(alpha)],
-                         [np.sin(alpha),np.cos(alpha)]])
+    def callbackSpawnerDelete(self, body_id_msg):
+        if body_id_msg.id  in self.lst_ids:
+            self.remove_spacecraft(body_id_msg.id)
 
 
 class Spacecraft2d(object):

@@ -35,7 +35,7 @@ if __name__ == '__main__':
         rospy.init_node('environment', anonymous=True)
 
         #Initialize environment solver
-        solver = Solver2d(dt = 1)
+        solver = SolverInterface(dt = 1)
         
         #solver.add_spacecraft(id, np.array([initStateParam]))
 
