@@ -5,6 +5,7 @@ import rospy
 from std_msgs.msg import String
 from geometry_msgs.msg import Point
 from orbit_sim.srv import SetNewOrbit
+from orbit_sim.msg import Orbits
 from orbit_sim.NavigationLib import *
 import numpy as np
 
@@ -38,7 +39,7 @@ if __name__ == '__main__':
           
         # Initialisierung des Publisher / Server
         pub_nav_thrust = rospy.Publisher("/navigation/thrust", Point, queue_size = 1)
-        sub_orbit_params = rospy.Subscriber("/simulation_data/orbit_params", OrbitMsg, spaceNavigator.updateCurrentOrbit)
+        sub_orbit_params = rospy.Subscriber("/simulation_data/orbit_params", Orbits, spaceNavigator.updateCurrentOrbit)
 
         #server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, callbackTransferSrv)
         server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, spaceNavigator.callbackSetTransfer)

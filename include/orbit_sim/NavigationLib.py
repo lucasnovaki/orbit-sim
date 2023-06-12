@@ -1,7 +1,7 @@
 import numpy as np
 from orbit_sim.EnvironmentSim import Orbit2d, Solver2d
 from geometry_msgs.msg import Point
-from orbit_sim.msg import Orbit2d as OrbitMsg
+from orbit_sim.msg import Orbits
 from orbit_sim.srv import ApplyThrust
 import rospy
 import math
@@ -10,14 +10,14 @@ class Navigator2d(object):
     def __init__(self, planner):
         self.planner = planner
         self.currentOrbit = dict()
-        self.pubTargetOrbit = rospy.Publisher("/navigation/target_orbit_params", OrbitMsg, queue_size = 1)
+        self.pubTargetOrbit = rospy.Publisher("/navigation/target_orbit_params", Orbits, queue_size = 1)
 
     def callbackSetTransfer(self, srv_msg):
 
         #create new transfer instance
         srv_msg.w_orbit = self.currentOrbit[srv_msg.id].w_orbit #apply restriction w_1 = w_2
         target = Orbit2d(orbitMsg= srv_msg)
-        self.transfer = self.createTransfer(target)
+        self.transfer = self.createTransfer(srv_msg.id, target)
         rospy.loginfo("Transfer created")
 
         #let planner handle it
@@ -26,7 +26,7 @@ class Navigator2d(object):
 
             #publish target to createvisual
             targetMsg = self.transfer.targetOrbit.toOrbitMsg()
-            self.pubTargetOrbit.publish(targetMsg)
+            self.pubTargetOrbit.publish(Orbits([srv_msg.id],[targetMsg]))
             return "Transfer planned."
         
         else:
@@ -45,7 +45,7 @@ class Navigator2d(object):
                 self.currentOrbit[id].setOrbit(orbit)
 
             #update true anomaly for planner 
-            self.planner.currentTheta[id] = orbit.theta
+            self.planner.currentTheta[id] = orbit.theta_orbit
 
             
 
@@ -156,11 +156,11 @@ class Planner(object):
         #callback from ros timer to verify point of maneuver
         for id in self.queues.keys():
             currentManeuver = self.queues[id][0]
-            C1 = (abs(self.currentTheta[id] - currentManeuver) < self.tol)
-            C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver) < self.tol)
-            C3 = (abs(self.currentTheta[id] - 2*math.pi - currentManeuver) < self.tol)
+            C1 = (abs(self.currentTheta[id] - currentManeuver[1]) < self.tol)
+            C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver[1]) < self.tol)
+            C3 = (abs(self.currentTheta[id] - 2*math.pi - currentManeuver[1]) < self.tol)
             if C1 or C2 or C3:
-                self.executeManeuever(id, currentManeuver) 
+                self.executeManeuever(id, currentManeuver[0]) 
 
     def programTransfer(self, id, transfer):
         
@@ -182,5 +182,5 @@ class Planner(object):
 
         if len(self.queues[id]) == 0:
             # if list empty stop checking for this spacecraft
-            self.queues[id].pop(id)
+            self.queues.pop(id)
 

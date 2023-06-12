@@ -28,7 +28,7 @@ class Solver2d(object):
         self.pubSimulationData = rospy.Publisher("/simulation_data/states", State2d, queue_size = 1)
 
         #publisher setup for 2d orbit
-        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", OrbitMsg, queue_size = 1)
+        self.pubOrbitParams = rospy.Publisher("/simulation_data/orbit_params", Orbits, queue_size = 1)
 
         #debug publishers
         self.pubEccentrVector = rospy.Publisher("/simulation_debug/e_vector", Vector3, queue_size = 1)
@@ -104,7 +104,7 @@ class Solver2d(object):
 
             #calculate orbit params from current state
             sc.orbit.updateOrbitParams(sc)
-            orbit_msg = sc.orbit.ToOrbitMsg()
+            orbit_msg = sc.orbit.toOrbitMsg()
 
             #append to list
             orbitsMsg.orbit.append(orbit_msg)

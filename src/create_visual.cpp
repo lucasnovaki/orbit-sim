@@ -21,7 +21,7 @@ int main( int argc, char** argv )
   {
 
     // Publish the marker
-    while (drawer.ellipsis_pub.getNumSubscribers() < 1)
+    while (drawer.central_body_pub.getNumSubscribers() < 1)
     {
       if (!ros::ok())
       {
