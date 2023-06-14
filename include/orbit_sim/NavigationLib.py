@@ -14,41 +14,49 @@ class Navigator2d(object):
 
     def callbackSetTransfer(self, srv_msg):
 
-        #create new transfer instance
-        srv_msg.w_orbit = self.currentOrbit[srv_msg.id].w_orbit #apply restriction w_1 = w_2
-        target = Orbit2d(orbitMsg= srv_msg)
-        self.transfer = self.createTransfer(srv_msg.id, target)
-        rospy.loginfo("Transfer created")
+        #check if spacecraft id exists
+        if srv_msg.id in self.currentOrbit:
 
-        #let planner handle it
-        if (self.transfer): 
-            self.pushToPlanner(srv_msg.id, self.transfer)
+            #create new transfer instance
+            srv_msg.w_orbit = self.currentOrbit[srv_msg.id].w_orbit #apply restriction w_1 = w_2
+            target = Orbit2d(orbitMsg = srv_msg)
+            self.transfer = self.createTransfer(srv_msg.id, target)
+            rospy.loginfo("Transfer created")
 
-            #publish target to createvisual
-            targetMsg = self.transfer.targetOrbit.toOrbitMsg()
-            self.pubTargetOrbit.publish(Orbits([srv_msg.id],[targetMsg]))
-            return "Transfer planned."
-        
+            #let planner handle it
+            if (self.transfer): 
+                self.pushToPlanner(srv_msg.id, self.transfer)
+
+                #publish target to createvisual
+                targetMsg = self.transfer.targetOrbit.toOrbitMsg()
+                self.pubTargetOrbit.publish(Orbits([srv_msg.id],[targetMsg]))
+                return "Transfer planned."
+            
+            else:
+                return "Error with transfer planning"
+            
         else:
-            return "Error with transfer planning"
+            return "[ERROR] Spacecraft ID nonexistent"
 
 
     def updateCurrentOrbit(self, Orbits):
     
         for id, orbit in zip(Orbits.id, Orbits.orbit):
             
-            if id not in self.currentOrbit.keys():
-                #create new dict entry if spacecraft is new
-                self.currentOrbit[id] = Orbit2d(orbitMsg = orbit)
-            else:
-                #update current orbit for next transfers
-                self.currentOrbit[id].setOrbit(orbit)
+            #update current orbit for next transfers
+            self.currentOrbit[id] = Orbit2d(orbitMsg = orbit)
 
             #update true anomaly for planner 
             self.planner.currentTheta[id] = orbit.theta_orbit
 
-            
+        #find extra IDs and remove them from planner and navigator
+        missingIds = list(set(self.currentOrbit.keys()) - set(Orbits.id))
+        for keyValue in missingIds:
+            self.currentOrbit.pop(keyValue)
+            self.planner.currentTheta.pop(keyValue)
+            self.planner.queues.pop(keyValue)
 
+            
     def createTransfer(self, id, targetOrbit):
         if self.currentOrbit[id]:
             transfer = Transfer2d(targetOrbit, self.currentOrbit[id])
@@ -154,7 +162,7 @@ class Planner(object):
 
     def checkForManeuever(self, orbit_msg):
         #callback from ros timer to verify point of maneuver
-        for id in self.queues.keys():
+        for id in self.queues:
             currentManeuver = self.queues[id][0]
             C1 = (abs(self.currentTheta[id] - currentManeuver[1]) < self.tol)
             C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver[1]) < self.tol)
@@ -165,7 +173,7 @@ class Planner(object):
     def programTransfer(self, id, transfer):
         
         #start queue if sc is new
-        if id not in self.queues.keys(): self.queues[id] = []
+        if id not in self.queues: self.queues[id] = []
 
         # place planned kick burn at the queue end
         self.queues[id].extend(transfer.maneuever_lst)
