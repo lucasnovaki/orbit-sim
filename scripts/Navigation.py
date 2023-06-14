@@ -12,18 +12,6 @@ import numpy as np
 ### Global variables
 NODE_RATE = 0.2
 
-### Functions
-
-def applyRandomThrust(pub, std_dev):
-    #create delta v vector
-    delta_v = Point()
-    delta_v.x = std_dev*np.random.randn()
-    delta_v.y = std_dev*np.random.randn()
-    delta_v.z = 0
-
-    #publish 
-    pub.publish(delta_v)
-
 # Hauptprogramm
 if __name__ == '__main__':
 
@@ -43,11 +31,6 @@ if __name__ == '__main__':
 
         #server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, callbackTransferSrv)
         server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, spaceNavigator.callbackSetTransfer)
-
-        # Ausfuehrung der while-Schleife bis der Node gestoppt wird
-        #while not rospy.is_shutdown():              
-        #applyRandomThrust(pub_nav_thrust, 0.2)
-        #r.sleep()
 
         # Create a ROS Timer for sending data
         rospy.Timer(rospy.Duration(10.0/1000.0), transferPlanner.checkForManeuever)
