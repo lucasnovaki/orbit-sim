@@ -3,10 +3,14 @@
 
 #include <ros/ros.h>
 #include <cmath>
+#include <map>
 #include <visualization_msgs/Marker.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <orbit_sim/State2d.h>
 #include <orbit_sim/Orbit2d.h>
+#include <orbit_sim/BodyID.h>
 #include <geometry_msgs/Vector3.h>
+#include <ros/console.h>
 
 #define SCALE_FACTOR 0.001
 
@@ -34,6 +38,8 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
         ros::Publisher spacecraft_vel_pub;
 
         ros::Subscriber spacecraft_pos_sub;
+        ros::Subscriber spawn_add_sub;
+        ros::Subscriber spawn_del_sub;
         //ros::Subscriber ellipsis_sub;
         //ros::Subscriber tar_ellipsis_sub;
 
@@ -41,25 +47,30 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
         //visualization_msgs::Marker currentEllipsis;
         //visualization_msgs::Marker targetEllipsis;
         visualization_msgs::Marker central_body;
-        visualization_msgs::Marker spacecraft_body;
-        visualization_msgs::Marker spacecraft_velocity;
+        map <uint16_t, visualization_msgs::Marker> spacecraft_body_map;
+        map <uint16_t, visualization_msgs::Marker> spacecraft_velocity_map;
+        //visualization_msgs::MarkerArray spacecraft_body[];
+        //visualization_msgs::MarkerArray spacecraft_velocity[];
+        uint16_t markerTotal = 0;
 
         // Main publisher method
         void PublishMarkers();
 
         //Callback methods
-        void updateVelocityArrow(geometry_msgs::Vector3, geometry_msgs::Vector3);
-        void updateSpacecraftBody(geometry_msgs::Vector3);
+        void updateVelocityArrow(uint16_t, geometry_msgs::Vector3, geometry_msgs::Vector3);
+        void updateSpacecraftBody(uint16_t, geometry_msgs::Vector3);
         void PosCallback(const orbit_sim::State2d::ConstPtr&);
         //void CurrentOrbitCallback(const orbit_sim::Orbit2d::ConstPtr&);
         //void TargetOrbitCallback(const orbit_sim::Orbit2d::ConstPtr&);
+        void callbackSpawnerAdd(const orbit_sim::State2d::ConstPtr&);
+        void callbackSpawnerDelete(const orbit_sim::BodyID::ConstPtr&);
 
         //Auxiliary methods
         //void drawEllipsis(const orbit_sim::Orbit2d::ConstPtr&, visualization_msgs::Marker&);
 
         //Setup methods
         void MarkerSetUp();
-        void MarkerBasicSetUp(visualization_msgs::Marker&, int);
+        void MarkerBasicSetUp(visualization_msgs::Marker&, int, uint8_t);
         void CommsSetUp(ros::NodeHandle&);
         void SetColors();
         void SetScales();
@@ -67,10 +78,51 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
         void SetUp(ros::NodeHandle& n){
             this->CommsSetUp(n);
             this->MarkerSetUp();
+            ROS_DEBUG("createvisual set up finished");
         }
  };
 
- void Drawer::updateVelocityArrow(geometry_msgs::Vector3 pos, geometry_msgs::Vector3 vel){
+ void Drawer::callbackSpawnerAdd(const orbit_sim::State2d::ConstPtr& state){
+    //add news markers to maps
+
+    ROS_INFO("Callback triggered");
+
+
+    visualization_msgs::Marker newMarkerPos;
+    visualization_msgs::Marker newMarkerVel;
+    Drawer::MarkerBasicSetUp(newMarkerPos, state->id[0], visualization_msgs::Marker::SPHERE);
+    Drawer::MarkerBasicSetUp(newMarkerVel, state->id[0], visualization_msgs::Marker::ARROW);
+    this->spacecraft_body_map[state->id[0]] = newMarkerPos;
+    ROS_INFO("Spacecraft body %d added", state->id[0]);
+    this->spacecraft_velocity_map[state->id[0]] = newMarkerVel;
+    ROS_INFO("Velocity arrow %d added", state->id[0]);
+    this->markerTotal++;
+ }
+
+  void Drawer::callbackSpawnerDelete(const orbit_sim::BodyID::ConstPtr& body){
+
+    //Set action to delete
+    auto itMapVel = this->spacecraft_velocity_map.find(body->id);
+    if (itMapVel!= this->spacecraft_velocity_map.end()){
+        itMapVel->second.action = visualization_msgs::Marker::DELETE;
+    }
+    auto itMapPos = this->spacecraft_body_map.find(body->id);
+    if (itMapPos!= this->spacecraft_body_map.end()){
+        itMapPos->second.action = visualization_msgs::Marker::DELETE;
+    }
+
+    //Delete markers in rviz
+    Drawer::PublishMarkers();
+
+    //Delete markers saved in map
+    this->spacecraft_body_map.erase(body->id);
+    this->spacecraft_velocity_map.erase(body->id);
+
+    //Update control variable
+    this->markerTotal--;
+ }
+
+ void Drawer::updateVelocityArrow(uint16_t id, geometry_msgs::Vector3 pos, geometry_msgs::Vector3 vel){
     geometry_msgs::Point arrowBegin;
     geometry_msgs::Point arrowEnd;
 
@@ -81,17 +133,24 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
     arrowEnd.y = vel.y + arrowBegin.y;
     arrowEnd.z = 0;
 
-    this->spacecraft_velocity.points[0] = arrowBegin;
-    this->spacecraft_velocity.points[1] = arrowEnd;
-
+    auto itMapVel = this->spacecraft_velocity_map.find(id);
+    if (itMapVel!= this->spacecraft_velocity_map.end()){
+        itMapVel->second.points[0] = arrowBegin;
+        itMapVel->second.points[1] = arrowEnd;
+    }
+    
     return;
 }
 
-void Drawer::updateSpacecraftBody(geometry_msgs::Vector3 pos){
-  this->spacecraft_body.pose.position.x = SCALE_FACTOR*pos.x;
-  this->spacecraft_body.pose.position.y = SCALE_FACTOR*pos.y;
+void Drawer::updateSpacecraftBody(uint16_t id, geometry_msgs::Vector3 pos){
+  auto itMapPos = this->spacecraft_body_map.find(id);
+  if (itMapPos!= this->spacecraft_body_map.end()){
+    itMapPos->second.pose.position.x = SCALE_FACTOR*pos.x;
+    itMapPos->second.pose.position.y = SCALE_FACTOR*pos.y;
+  }
   return;
 }
+
 /*
 void Drawer::drawEllipsis(const orbit_sim::Orbit2d::ConstPtr& orbitParams, visualization_msgs::Marker& ellipsisObj){
     // Get update values for orbit params
@@ -124,15 +183,11 @@ void Drawer::drawEllipsis(const orbit_sim::Orbit2d::ConstPtr& orbitParams, visua
 */
 
 void Drawer::PosCallback(const orbit_sim::State2d::ConstPtr& state){
-    
-    //geometry_msgs::Vector3 statePos[] = state->position;
-    //geometry_msgs::Vector3 stateVel[] = state->velocity;
 
     for(uint16_t i = 0; i < sizeof(state->id)/sizeof(int16_t); ++i){
-        if (state->id[i] == 1){
-            Drawer::updateSpacecraftBody(state->position[i]);
-            Drawer::updateVelocityArrow(state->position[i], state->velocity[i]);
-        }
+        uint16_t currentId = state->id[i];
+        Drawer::updateSpacecraftBody(currentId, state->position[i]);
+        Drawer::updateVelocityArrow(currentId, state->position[i], state->velocity[i]);
     }
 
     return;
@@ -150,11 +205,30 @@ void Drawer::TargetOrbitCallback(const orbit_sim::Orbit2d::ConstPtr& orbitParams
 */
 
 void Drawer::PublishMarkers(){
+
+    int sizeMap = this->spacecraft_body_map.size();
+
+    if (sizeMap > 0){
+        visualization_msgs::MarkerArray spacecraft_body;
+        visualization_msgs::MarkerArray spacecraft_velocity;
+
+        for(auto it = spacecraft_body_map.begin(); it!=spacecraft_body_map.end(); ++it){
+            spacecraft_body.markers.push_back(it->second);
+        }
+        ROS_DEBUG("Spacecrafts added to marker array");
+        for(auto it = spacecraft_velocity_map.begin(); it!=spacecraft_velocity_map.end(); ++it){
+            spacecraft_velocity.markers.push_back(it->second);
+        }
+        ROS_DEBUG("Velocitites added to marker array");
+
+        this->spacecraft_body_pub.publish(spacecraft_body);
+        this->spacecraft_vel_pub.publish(spacecraft_velocity);
+    }
+    
     //this->ellipsis_pub.publish(this->currentEllipsis);
     //this->tar_ellipsis_pub.publish(this->targetEllipsis);
     this->central_body_pub.publish(this->central_body);
-    this->spacecraft_body_pub.publish(this->spacecraft_body);
-    this->spacecraft_vel_pub.publish(this->spacecraft_velocity);
+    
     return;
 }
 
@@ -163,10 +237,12 @@ void Drawer::CommsSetUp(ros::NodeHandle& n){
     //this->ellipsis_pub = n.advertise<visualization_msgs::Marker>("spacecraft/ellipsis", 1);
     //this->tar_ellipsis_pub = n.advertise<visualization_msgs::Marker>("spacecraft/target_ellipsis", 1);
     this->central_body_pub = n.advertise<visualization_msgs::Marker>("spacecraft/central_body", 1);
-    this->spacecraft_body_pub = n.advertise<visualization_msgs::Marker>("spacecraft/spacecraft_body", 1);
-    this->spacecraft_vel_pub = n.advertise<visualization_msgs::Marker>("spacecraft/spacecraft_velocity", 1);
+    this->spacecraft_body_pub = n.advertise<visualization_msgs::MarkerArray>("spacecraft/spacecraft_body", 1);
+    this->spacecraft_vel_pub = n.advertise<visualization_msgs::MarkerArray>("spacecraft/spacecraft_velocity", 1);
     
     //Subscribers
+    this->spawn_add_sub = n.subscribe("/SpawnControl/spawn", 1, &Drawer::callbackSpawnerAdd, this);
+    this->spawn_del_sub = n.subscribe("/SpawnControl/delete", 1, &Drawer::callbackSpawnerDelete, this);
     this->spacecraft_pos_sub = n.subscribe("/simulation_data/states", 1, &Drawer::PosCallback, this);
     //this->ellipsis_sub = n.subscribe("/simulation_data/orbit_params", 1, &Drawer::CurrentOrbitCallback, this);
     //this->tar_ellipsis_sub = n.subscribe("/navigation/target_orbit_params", 1, &Drawer::TargetOrbitCallback, this);
@@ -174,12 +250,13 @@ void Drawer::CommsSetUp(ros::NodeHandle& n){
     return;
 }
 
-void Drawer::MarkerBasicSetUp(visualization_msgs::Marker& marker, int id){
+void Drawer::MarkerBasicSetUp(visualization_msgs::Marker& marker, int id, uint8_t markerType){
     marker.header.frame_id = "visual_frame";
     marker.header.stamp = ros::Time::now();
     marker.ns = "orbit";
     marker.id = id;
     marker.action = visualization_msgs::Marker::ADD;
+    marker.type = markerType;
     marker.lifetime = ros::Duration();
     marker.pose.position.x = 0;
     marker.pose.position.y = 0;
@@ -188,6 +265,36 @@ void Drawer::MarkerBasicSetUp(visualization_msgs::Marker& marker, int id){
     marker.pose.orientation.y = 0.0;
     marker.pose.orientation.z = 0.0;
     marker.pose.orientation.w = 1.0;
+    
+    if (markerType == visualization_msgs::Marker::SPHERE){
+        //Set color and scale
+        marker.scale.x = 2;
+        marker.scale.y = 2;
+        marker.scale.z = 2;
+        marker.color.r = 0.0f;
+        marker.color.g = 0.0f;
+        marker.color.b = 1.0f;
+        marker.color.a = 1.0;
+    }
+    else if (markerType == visualization_msgs::Marker::ARROW){
+        //Set color and scale
+        marker.scale.x = 0.2;
+        marker.scale.y = 0.2;
+        marker.scale.z = 0.4;
+        marker.color.r = 1.0f;
+        marker.color.g = 0.0f;
+        marker.color.b = 0.0f;
+        marker.color.a = 1.0;
+
+        //Init points with zero value
+        geometry_msgs::Point pInit;
+        pInit.x = 0;
+        pInit.y = 0;
+        pInit.z = 0;
+        marker.points.push_back(pInit);
+        marker.points.push_back(pInit);
+
+    }
     return;
 }
 
@@ -203,22 +310,14 @@ void Drawer::SetColors(){
     this->targetEllipsis.color.g = 0.0f;
     this->targetEllipsis.color.b = 1.0f;
     this->targetEllipsis.color.a = 1.0;
+
     */
 
     this->central_body.color.r = 1.0f;
     this->central_body.color.g = 0.0f;
     this->central_body.color.b = 0.0f;
     this->central_body.color.a = 1.0;
-
-    this->spacecraft_body.color.r = 0.0f;
-    this->spacecraft_body.color.g = 0.0f;
-    this->spacecraft_body.color.b = 1.0f;
-    this->spacecraft_body.color.a = 1.0;
-
-    this->spacecraft_velocity.color.r = 1.0f;
-    this->spacecraft_velocity.color.g = 0.0f;
-    this->spacecraft_velocity.color.b = 0.0f;
-    this->spacecraft_velocity.color.a = 1.0;
+    
 }
 
 void Drawer::SetScales(){
@@ -229,34 +328,23 @@ void Drawer::SetScales(){
     this->central_body.scale.x = SCALE_FACTOR*13000;
     this->central_body.scale.y = SCALE_FACTOR*13000;
     this->central_body.scale.z = SCALE_FACTOR*13000;
-
-    this->spacecraft_body.scale.x = 2;
-    this->spacecraft_body.scale.y = 2;
-    this->spacecraft_body.scale.z = 2;
-
-    this->spacecraft_velocity.scale.x = 0.2;
-    this->spacecraft_velocity.scale.y = 0.2;
-    this->spacecraft_velocity.scale.z = 0.4;
+    
 }
 
 void Drawer::MarkerSetUp(){
   // Basic Setup
   //Drawer::MarkerBasicSetUp(this->currentEllipsis, 0);
   //Drawer::MarkerBasicSetUp(this->targetEllipsis, 1);
-  Drawer::MarkerBasicSetUp(this->central_body, 2);
-  Drawer::MarkerBasicSetUp(this->spacecraft_body, 3);
-  Drawer::MarkerBasicSetUp(this->spacecraft_velocity, 4);
+  Drawer::MarkerBasicSetUp(this->central_body, 99, visualization_msgs::Marker::SPHERE);
 
   // Set the marker type.
   //this->currentEllipsis.type = visualization_msgs::Marker::LINE_LIST;
   //this->targetEllipsis.type = visualization_msgs::Marker::LINE_LIST;
-  this->central_body.type = visualization_msgs::Marker::SPHERE;
-  this->spacecraft_body.type = visualization_msgs::Marker::SPHERE_LIST;
-  this->spacecraft_velocity.type = visualization_msgs::Marker::LINE_LIST;
 
   Drawer::SetScales();
   Drawer::SetColors();
 
+  /*
   //dimensions of ellipse
   float theta = 0;
   const float r_pe = 15150.0; //km
@@ -264,13 +352,8 @@ void Drawer::MarkerSetUp(){
   float a_orbit = (r_pe + r_apo)/2; //km
   float b_orbit = 0.7*a_orbit;
 
-  // Set the initial pose of SC body
-  this->spacecraft_body.pose.position.x = SCALE_FACTOR*b_orbit*sin(theta);
-  this->spacecraft_body.pose.position.y = SCALE_FACTOR*(a_orbit*(1-cos(theta)) - r_pe);
-  this->spacecraft_body.pose.position.z = 0;
-
   // Create the vertices for the lines
-  /*
+  
   for (uint32_t i = 0; i < 1000; ++i)
   {
     geometry_msgs::Point p;
@@ -282,11 +365,6 @@ void Drawer::MarkerSetUp(){
     this->targetEllipsis.points.push_back(p);
   }
   */
-
-  //create initial velocity arrow
-  geometry_msgs::Point arrowBegin = spacecraft_body.pose.position;
-  this->spacecraft_velocity.points.push_back(arrowBegin);
-  this->spacecraft_velocity.points.push_back(arrowBegin);
 
   return;
 }
