@@ -54,7 +54,9 @@ class Navigator2d(object):
         for keyValue in missingIds:
             self.currentOrbit.pop(keyValue)
             self.planner.currentTheta.pop(keyValue)
-            self.planner.queues.pop(keyValue)
+            
+            if keyValue in self.planner.queues:
+                self.planner.queues.pop(keyValue)
 
             
     def createTransfer(self, id, targetOrbit):
