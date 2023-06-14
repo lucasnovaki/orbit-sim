@@ -128,9 +128,10 @@ class SolverInterface(Solver2d):
 
             #debug: publish e vector
             #e_vector = sc.orbit.e_vector
-          
-        self.pubOrbitParams.publish(orbitsMsg)
-        #self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
+        
+        if len(self.lst_ids)>0:
+            self.pubOrbitParams.publish(orbitsMsg)
+            #self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
         return
     
     def callbackSpawnerAdd(self, state_msg):
