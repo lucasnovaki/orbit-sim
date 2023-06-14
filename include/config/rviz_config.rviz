@@ -7,10 +7,10 @@ Panels:
         - /Global Options1
         - /Status1
         - /Earth1
-        - /TargetEllipsis1/Namespaces1
         - /VelocityArrow1
         - /Spacecraft1
         - /CurrentEllipsis1
+        - /TargetEllipsis1
       Splitter Ratio: 0.5
     Tree Height: 414
   - Class: rviz/Selection
@@ -62,7 +62,7 @@ Visualization Manager:
       Marker Topic: spacecraft/central_body
       Name: Earth
       Namespaces:
-        {}
+        orbit: true
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -72,14 +72,6 @@ Visualization Manager:
       Radius: 0.10000000149011612
       Reference Frame: <Fixed Frame>
       Value: true
-    - Class: rviz/Marker
-      Enabled: false
-      Marker Topic: spacecraft/target_ellipsis
-      Name: TargetEllipsis
-      Namespaces:
-        {}
-      Queue Size: 100
-      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: spacecraft/spacecraft_velocity
@@ -100,6 +92,14 @@ Visualization Manager:
       Enabled: true
       Marker Topic: spacecraft/ellipsis
       Name: CurrentEllipsis
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: spacecraft/target_ellipsis
+      Name: TargetEllipsis
       Namespaces:
         {}
       Queue Size: 100
