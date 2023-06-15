@@ -71,16 +71,16 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
         void PublishArray(ros::Publisher, map <uint16_t, visualization_msgs::Marker>);
 
         //Setup methods
-        void MarkerSetUp();
+        void CentralBodySetUp();
         void MarkerBasicSetUp(visualization_msgs::Marker&, int, uint8_t);
         void CommsSetUp(ros::NodeHandle&);
-        void SetColors();
-        void SetScales();
+        void SetColors(visualization_msgs::Marker&, float, float, float, float);
+        void SetScales(visualization_msgs::Marker&, float, float, float);
 
         void SetUp(ros::NodeHandle& n){
             this->CommsSetUp(n);
-            this->MarkerSetUp();
-            ROS_DEBUG("createvisual set up finished");
+            this->CentralBodySetUp();
+            ROS_INFO("createvisual set up finished");
         }
  };
 
@@ -94,10 +94,20 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
     visualization_msgs::Marker newMarkerVel;
     visualization_msgs::Marker newMarkerCurElps;
 
-    //SetUp Functions
+    //SetUp Spacecraft Body
     Drawer::MarkerBasicSetUp(newMarkerPos, state->id[0], visualization_msgs::Marker::SPHERE);
+    Drawer::SetScales(newMarkerPos, 2, 2, 2);
+    Drawer::SetColors(newMarkerPos, 0, 0, 1, 1);
+
+    //SetUp Velocity Arrow
     Drawer::MarkerBasicSetUp(newMarkerVel, state->id[0], visualization_msgs::Marker::ARROW);
+    Drawer::SetScales(newMarkerVel, 0.2, 0.2, 0.4);
+    Drawer::SetColors(newMarkerVel, 1, 0, 0, 1);
+
+    //SetUp Trajectory
     Drawer::MarkerBasicSetUp(newMarkerCurElps, state->id[0], visualization_msgs::Marker::LINE_LIST);
+    Drawer::SetScales(newMarkerCurElps, 0.1, 0, 0);
+    Drawer::SetColors(newMarkerCurElps, 0, 1, 0, 1);
 
     //Assign new map entry to created markers
     this->spacecraft_body_map[state->id[0]] = newMarkerPos;
@@ -250,7 +260,9 @@ void Drawer::TargetOrbitCallback(const orbit_sim::Orbits::ConstPtr& orbitMsg){
     //Initialize and set-up marker
     visualization_msgs::Marker newMarkerTarElps;
     Drawer::MarkerBasicSetUp(newMarkerTarElps, currentId, visualization_msgs::Marker::LINE_LIST);
-    
+    Drawer::SetScales(newMarkerTarElps, 0.1, 0, 0);
+    Drawer::SetColors(newMarkerTarElps, 1, 0, 1, 1);
+
     //Update entry or create new if non existent
     this->targetEllipsis_map[currentId] = newMarkerTarElps;
     ROS_INFO("Target ellipsis %d added/altered", currentId);
@@ -343,39 +355,13 @@ void Drawer::MarkerBasicSetUp(visualization_msgs::Marker& marker, int id, uint8_
     pInit.x = 0;
     pInit.y = 0;
     pInit.z = 0;
-    
-    if (markerType == visualization_msgs::Marker::SPHERE){
-        //Set color and scale
-        marker.scale.x = 2;
-        marker.scale.y = 2;
-        marker.scale.z = 2;
-        marker.color.r = 0.0f;
-        marker.color.g = 0.0f;
-        marker.color.b = 1.0f;
-        marker.color.a = 1.0;
-    }
-    else if (markerType == visualization_msgs::Marker::ARROW){
-        //Set color and scale
-        marker.scale.x = 0.2;
-        marker.scale.y = 0.2;
-        marker.scale.z = 0.4;
-        marker.color.r = 1.0f;
-        marker.color.g = 0.0f;
-        marker.color.b = 0.0f;
-        marker.color.a = 1.0;
 
+    if (markerType == visualization_msgs::Marker::ARROW){
         //Init points with zero value
         marker.points.push_back(pInit);
         marker.points.push_back(pInit);
     }
     else if (markerType == visualization_msgs::Marker::LINE_LIST){
-        //Set color and scale
-        marker.color.r = 0.0f;
-        marker.color.g = 1.0f;
-        marker.color.b = 0.0f;
-        marker.color.a = 1.0;
-        marker.scale.x = 0.1;
-
         //Initialize points with zero value
         for (uint32_t i = 0; i < ELLIPSIS_LINE_SIZE; ++i){
             marker.points.push_back(pInit);
@@ -384,32 +370,34 @@ void Drawer::MarkerBasicSetUp(visualization_msgs::Marker& marker, int id, uint8_
     return;
 }
 
-void Drawer::SetColors(){
-    // Set the color -- be sure to set alpha to something non-zero!
-
-    this->central_body.color.r = 1.0f;
-    this->central_body.color.g = 0.0f;
-    this->central_body.color.b = 0.0f;
-    this->central_body.color.a = 1.0;
-    
+void Drawer::SetColors(visualization_msgs::Marker& marker, float rValue, float gValue, float bValue, float aValue){
+    // Set the color. aValue should be non-zero.
+    marker.color.r = rValue;
+    marker.color.g = gValue;
+    marker.color.b = bValue;
+    marker.color.a = aValue;
 }
 
-void Drawer::SetScales(){
+void Drawer::SetScales(visualization_msgs::Marker& marker, float xValue, float yValue, float zValue){
     // Set the scale of the marker
-    //this->targetEllipsis.scale.x = 0.1;
-
     this->central_body.scale.x = SCALE_FACTOR*13000;
     this->central_body.scale.y = SCALE_FACTOR*13000;
     this->central_body.scale.z = SCALE_FACTOR*13000;
-    
+
+    marker.scale.x = xValue;
+    marker.scale.y = yValue;
+    marker.scale.z = zValue;
 }
 
-void Drawer::MarkerSetUp(){
+void Drawer::CentralBodySetUp(){
+
   // Basic Setup
-  
   Drawer::MarkerBasicSetUp(this->central_body, 99, visualization_msgs::Marker::SPHERE);
-  Drawer::SetScales();
-  Drawer::SetColors();
+
+  //Scale and colors
+  float scaleCentralBody = SCALE_FACTOR*13000;
+  Drawer::SetScales(this->central_body, scaleCentralBody, scaleCentralBody, scaleCentralBody);
+  Drawer::SetColors(this->central_body, 1, 0, 0, 1);
 
   return;
 }
