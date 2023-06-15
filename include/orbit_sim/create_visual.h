@@ -150,22 +150,28 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
  }
 
  void Drawer::updateVelocityArrow(uint16_t id, geometry_msgs::Vector3 pos, geometry_msgs::Vector3 vel){
-    geometry_msgs::Point arrowBegin;
-    geometry_msgs::Point arrowEnd;
-
-    arrowBegin.x = SCALE_FACTOR*pos.x;
-    arrowBegin.y = SCALE_FACTOR*pos.y;
-    arrowBegin.z = 0;
-    arrowEnd.x = vel.x + arrowBegin.x;
-    arrowEnd.y = vel.y + arrowBegin.y;
-    arrowEnd.z = 0;
-
+    
+    //find reference to marker
     auto itMapVel = this->spacecraft_velocity_map.find(id);
+
     if (itMapVel!= this->spacecraft_velocity_map.end()){
+
+        //define two points
+        geometry_msgs::Point arrowBegin;
+        geometry_msgs::Point arrowEnd;
+
+        //calculate based on next body position
+        arrowBegin.x = SCALE_FACTOR*pos.x;
+        arrowBegin.y = SCALE_FACTOR*pos.y;
+        arrowBegin.z = 0;
+        arrowEnd.x = vel.x + arrowBegin.x;
+        arrowEnd.y = vel.y + arrowBegin.y;
+        arrowEnd.z = 0;
+
+        //set to map value
         itMapVel->second.points[0] = arrowBegin;
         itMapVel->second.points[1] = arrowEnd;
     }
-    
     return;
 }
 
@@ -180,10 +186,11 @@ void Drawer::updateSpacecraftBody(uint16_t id, geometry_msgs::Vector3 pos){
 
 void Drawer::PosCallback(const orbit_sim::State2d::ConstPtr& state){
 
+    //iterate on id list
     for(uint16_t i = 0; i < state->id.size(); ++i){
         uint16_t currentId = state->id[i];
-        Drawer::updateSpacecraftBody(currentId, state->position[i]);
-        Drawer::updateVelocityArrow(currentId, state->position[i], state->velocity[i]);
+        Drawer::updateSpacecraftBody(currentId, state->position[i]); //update position markers
+        Drawer::updateVelocityArrow(currentId, state->position[i], state->velocity[i]); //update velocity markers
     }
 
     return;
@@ -191,15 +198,18 @@ void Drawer::PosCallback(const orbit_sim::State2d::ConstPtr& state){
 
 
 void Drawer::drawEllipsis(const orbit_sim::Orbit2d orbitParams, visualization_msgs::Marker& ellipsisObj){
-    // Get update values for orbit params
+    /* Ellipsis' line points calculated from given orbital parameters
+       Points from passed Marker object are updated */
+    
+    // Get updated values for orbital params
     float current_a_orbit = orbitParams.a_orbit;
     float current_e_orbit = orbitParams.e_orbit;
     float current_b_orbit = current_a_orbit*sqrt(1 - pow(current_e_orbit,2));
 
+    //verify if it is indeed an ellipsis
     if (current_e_orbit <= 1 & current_e_orbit > 0){
       
-      //calculate orbit shape only if its indeed ellipsis
-      float r_pe = current_a_orbit*(1 - current_e_orbit);
+      float r_pe = current_a_orbit*(1 - current_e_orbit); //periapsis radius
         
       // Create the vertices for the lines
       for (uint32_t i = 0; i < ELLIPSIS_LINE_SIZE; ++i)
@@ -212,6 +222,7 @@ void Drawer::drawEllipsis(const orbit_sim::Orbit2d orbitParams, visualization_ms
         p.y = SCALE_FACTOR*y_i;
         p.z = 0;
 
+        //Update passed marker point in global reference frame
         ellipsisObj.points[i] = rotate2dPoint(p, -orbitParams.w_orbit + M_PI/2);
       }
     }
@@ -220,11 +231,12 @@ void Drawer::drawEllipsis(const orbit_sim::Orbit2d orbitParams, visualization_ms
 }
 
 void Drawer::CurrentOrbitCallback(const orbit_sim::Orbits::ConstPtr& orbitsMsg){
-  
+
+    //iterate on id list
     for(uint16_t i = 0; i < orbitsMsg->id.size(); ++i){
         auto itMapElps = this->currentEllipsis_map.find(orbitsMsg->id[i]);
         if(itMapElps != this->currentEllipsis_map.end()){
-            Drawer::drawEllipsis(orbitsMsg->orbit[i], itMapElps->second);
+            Drawer::drawEllipsis(orbitsMsg->orbit[i], itMapElps->second); //update ellipsis points
         }
         
     }
@@ -278,6 +290,10 @@ void Drawer::PublishArray(ros::Publisher pub, map <uint16_t, visualization_msgs:
 
 
 void Drawer::PublishMarkers(){
+
+    //Drawer::PublishArray(this->spacecraft_body_pub, spacecraft_body_map);
+    //Drawer::PublishArray(this->spacecraft_vel_pub, spacecraft_velocity_map);
+    //Drawer::PublishArray(this->ellipsis_pub, currentEllipsis_map);
 
     int sizeMap = this->spacecraft_body_map.size();
 
