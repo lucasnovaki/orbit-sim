@@ -291,42 +291,10 @@ void Drawer::PublishArray(ros::Publisher pub, map <uint16_t, visualization_msgs:
 
 void Drawer::PublishMarkers(){
 
-    //Drawer::PublishArray(this->spacecraft_body_pub, spacecraft_body_map);
-    //Drawer::PublishArray(this->spacecraft_vel_pub, spacecraft_velocity_map);
-    //Drawer::PublishArray(this->ellipsis_pub, currentEllipsis_map);
-
-    int sizeMap = this->spacecraft_body_map.size();
-
-    if (sizeMap>0){
-        visualization_msgs::MarkerArray spacecraft_body;
-        visualization_msgs::MarkerArray spacecraft_velocity;
-        visualization_msgs::MarkerArray currentEllipsis;
-
-        //Fill array of SC bodies
-        for(auto it = spacecraft_body_map.begin(); it!=spacecraft_body_map.end(); ++it){
-            spacecraft_body.markers.push_back(it->second);
-        }
-        ROS_DEBUG("Spacecrafts added to marker array");
-
-        //Fill array of SC velocities
-        for(auto it = spacecraft_velocity_map.begin(); it!=spacecraft_velocity_map.end(); ++it){
-            spacecraft_velocity.markers.push_back(it->second);
-        }
-        ROS_DEBUG("Velocitites added to marker array");
-
-        //Fill array of SC trajectories
-        for(auto it = currentEllipsis_map.begin(); it != currentEllipsis_map.end(); ++it){
-            currentEllipsis.markers.push_back(it->second);
-        }
-        ROS_DEBUG("Trajectories added to marker array");
-
-
-        //Finally publish arrays to rviz
-        this->spacecraft_body_pub.publish(spacecraft_body);
-        this->spacecraft_vel_pub.publish(spacecraft_velocity);
-        this->ellipsis_pub.publish(currentEllipsis);
-        
-    }   
+    //Publish spacecraft, velocity arrow and trajectory
+    Drawer::PublishArray(this->spacecraft_body_pub, spacecraft_body_map);
+    Drawer::PublishArray(this->spacecraft_vel_pub, spacecraft_velocity_map);
+    Drawer::PublishArray(this->ellipsis_pub, currentEllipsis_map);
     
     // Publish central body (if it is constant there is no need though)
     this->central_body_pub.publish(this->central_body);
