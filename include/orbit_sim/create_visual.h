@@ -111,11 +111,8 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
 
     //Assign new map entry to created markers
     this->spacecraft_body_map[state->id[0]] = newMarkerPos;
-    ROS_INFO("Spacecraft body %d added", state->id[0]);
     this->spacecraft_velocity_map[state->id[0]] = newMarkerVel;
-    ROS_INFO("Velocity arrow %d added", state->id[0]);
     this->currentEllipsis_map[state->id[0]] = newMarkerCurElps;
-    ROS_INFO("Ellipsis %d added", state->id[0]);
 
     //Update control variable
     this->markerTotal++;

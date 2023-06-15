@@ -116,12 +116,6 @@ class Transfer2d(object):
             v_per_trs = np.sqrt(Solver2d.mi*(1+transferOrbit.e_orbit)/(transferOrbit.a_orbit*(1-transferOrbit.e_orbit)))
             v_apo_trs = np.sqrt(Solver2d.mi*(1-transferOrbit.e_orbit)/(transferOrbit.a_orbit*(1+transferOrbit.e_orbit)))
 
-            #log velocity in maneuver points
-            #rospy.loginfo("V_per_int: {:.2f}".format(v_per_int))
-            #rospy.loginfo("V_per_trs: {:.2f}".format(v_per_trs))
-            #rospy.loginfo("V_apo_trs: {:.2f}".format(v_apo_trs))
-            #rospy.loginfo("V_apo_ext: {:.2f}".format(v_apo_ext))
-
             #create list of maneuvers
             if mod == 1:
                 rospy.loginfo('Transfer mode 1')
@@ -170,8 +164,6 @@ class Planner(object):
             C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver[1]) < self.tol)
             C3 = (abs(self.currentTheta[id] - 2*math.pi - currentManeuver[1]) < self.tol)
             if C1 or C2 or C3:
-                rospy.loginfo("Current Theta {:d}: {:.2f}".format(id, self.currentTheta[id]))
-                rospy.loginfo("Desired Maneuver Theta {:d}: {:.2f}".format(id, currentManeuver[1]))
                 self.executeManeuever(id, currentManeuver[0]) 
 
     def programTransfer(self, id, transfer):
