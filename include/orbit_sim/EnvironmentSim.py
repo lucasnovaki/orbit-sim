@@ -159,9 +159,16 @@ class Spacecraft2d(object):
 
     def applyThrust(self, delta_v):
         # delta_v = (dx, dy) in spacecraft reference frame
-        theta = np.arctan2(self.currentState[0,1], self.currentState[0,0])
-        delta_v = np.matmul(Solver2d.getRotMatrix(theta), delta_v.transpose()).transpose()
 
+        #calculate rotation angle
+        theta = np.arctan2(self.currentState[0,1], self.currentState[0,0])
+        if self.orbit.h_vector[0,2] < 0: #clockwise direction
+            theta = theta + math.pi
+
+        #rotate vector
+        delta_v = np.matmul(Solver2d.getRotMatrix(theta), delta_v.transpose()).transpose()
+            
+        #apply to vel states
         self.currentState[0,2] += delta_v[0, 0]
         self.currentState[0,3] += delta_v[0, 1]
 
