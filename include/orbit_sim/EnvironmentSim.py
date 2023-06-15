@@ -142,7 +142,7 @@ class SolverInterface(Solver2d):
             self.add_spacecraft(state_msg.id[0], initState)
 
     def callbackSpawnerDelete(self, body_id_msg):
-        if body_id_msg.id  in self.lst_ids:
+        if body_id_msg.id in self.lst_ids:
             self.remove_spacecraft(body_id_msg.id)
 
 
@@ -171,12 +171,16 @@ class Spacecraft2d(object):
 class Orbit2d(object):
     def __init__(self, spacecraft = None, orbitMsg = None):
 
-        #init fields
+        #main orbital elements
         self.a_orbit = None
         self.e_orbit = None
         self.w_orbit = None
-        self.e_vector = None
         self.theta_orbit = None
+
+        #auxiliary vectors
+        self.e_vector = None
+        self.h_vector = None
+        
         self.id = None
 
         if spacecraft:
@@ -197,10 +201,10 @@ class Orbit2d(object):
         x, y, v_x, v_y = spacecraft.getStates()
         radius = np.sqrt(x**2 + y**2)
         h = x*v_y - y*v_x
-        h_vector = np.array([[0, 0, h]])
+        self.h_vector = np.array([[0, 0, h]])
         v_vector = np.array([[v_x, v_y, 0]])
         r_vector = np.array([[x, y, 0]])
-        e_vector = np.cross(v_vector, h_vector)/Solver2d.mi - r_vector/radius
+        e_vector = np.cross(v_vector, self.h_vector)/Solver2d.mi - r_vector/radius
 
         #semi-major axis
         self.a_orbit = Solver2d.mi*radius/(2*Solver2d.mi - radius*(v_x**2 + v_y**2))
@@ -215,7 +219,7 @@ class Orbit2d(object):
             self.w_orbit = 2*math.pi - np.arccos(e_vector[0,0]/self.e_orbit)
 
         #true anomaly
-        u_vector = np.cross(h_vector, e_vector)
+        u_vector = np.cross(self.h_vector, e_vector)
         if np.dot(u_vector[0], r_vector[0]) > 0:
             self.theta_orbit = np.arccos(np.dot(e_vector[0], r_vector[0])/(radius*self.e_orbit))
         else:
@@ -241,5 +245,9 @@ class Orbit2d(object):
         msg.a_orbit = self.a_orbit
         msg.e_orbit = self.e_orbit
         msg.w_orbit = self.w_orbit
+        if self.theta_orbit:
+            msg.theta_orbit = self.theta_orbit
+        else:
+            msg.theta_orbit = 9999
         return msg
 

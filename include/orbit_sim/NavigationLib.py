@@ -20,15 +20,15 @@ class Navigator2d(object):
             #create new transfer instance
             srv_msg.w_orbit = self.currentOrbit[srv_msg.id].w_orbit #apply restriction w_1 = w_2
             target = Orbit2d(orbitMsg = srv_msg)
-            self.transfer = self.createTransfer(srv_msg.id, target)
+            currentTransfer = self.createTransfer(srv_msg.id, target)
             rospy.loginfo("Transfer created")
 
             #let planner handle it
-            if (self.transfer): 
-                self.pushToPlanner(srv_msg.id, self.transfer)
+            if (currentTransfer): 
+                self.pushToPlanner(srv_msg.id, currentTransfer)
 
                 #publish target to createvisual
-                targetMsg = self.transfer.targetOrbit.toOrbitMsg()
+                targetMsg = target.toOrbitMsg()
                 self.pubTargetOrbit.publish(Orbits([srv_msg.id],[targetMsg]))
                 return "Transfer planned."
             
@@ -117,10 +117,10 @@ class Transfer2d(object):
             v_apo_trs = np.sqrt(Solver2d.mi*(1-transferOrbit.e_orbit)/(transferOrbit.a_orbit*(1+transferOrbit.e_orbit)))
 
             #log velocity in maneuver points
-            rospy.loginfo("V_per_int: {:.2f}".format(v_per_int))
-            rospy.loginfo("V_per_trs: {:.2f}".format(v_per_trs))
-            rospy.loginfo("V_apo_trs: {:.2f}".format(v_apo_trs))
-            rospy.loginfo("V_apo_ext: {:.2f}".format(v_apo_ext))
+            #rospy.loginfo("V_per_int: {:.2f}".format(v_per_int))
+            #rospy.loginfo("V_per_trs: {:.2f}".format(v_per_trs))
+            #rospy.loginfo("V_apo_trs: {:.2f}".format(v_apo_trs))
+            #rospy.loginfo("V_apo_ext: {:.2f}".format(v_apo_ext))
 
             #create list of maneuvers
             if mod == 1:
@@ -164,12 +164,14 @@ class Planner(object):
 
     def checkForManeuever(self, orbit_msg):
         #callback from ros timer to verify point of maneuver
-        for id in self.queues:
+        for id in list(self.queues): #iterate over copy of keys
             currentManeuver = self.queues[id][0]
             C1 = (abs(self.currentTheta[id] - currentManeuver[1]) < self.tol)
             C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver[1]) < self.tol)
             C3 = (abs(self.currentTheta[id] - 2*math.pi - currentManeuver[1]) < self.tol)
             if C1 or C2 or C3:
+                rospy.loginfo("Current Theta {:d}: {:.2f}".format(id, self.currentTheta[id]))
+                rospy.loginfo("Desired Maneuver Theta {:d}: {:.2f}".format(id, currentManeuver[1]))
                 self.executeManeuever(id, currentManeuver[0]) 
 
     def programTransfer(self, id, transfer):
@@ -180,7 +182,7 @@ class Planner(object):
         # place planned kick burn at the queue end
         self.queues[id].extend(transfer.maneuever_lst)
 
-        rospy.loginfo("Current maneuver for queue {:d}: {}".format(id, str(transfer.maneuever_lst)))
+        rospy.loginfo('Current queues: {}'.format(str(self.queues)) )
 
 
     def executeManeuever(self, id, dv):
@@ -193,4 +195,6 @@ class Planner(object):
         if len(self.queues[id]) == 0:
             # if list empty stop checking for this spacecraft
             self.queues.pop(id)
+
+        rospy.loginfo('Current queues: {}'.format(str(self.queues)) )
 
