@@ -14,8 +14,7 @@ int main( int argc, char** argv )
   ros::Rate r(VISUAL_NODE_RATE);
 
   //Setup drawer instance
-  Drawer drawer;
-  drawer.SetUp(n);
+  Drawer drawer(n);
 
   while (ros::ok())
   {
