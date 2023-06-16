@@ -15,4 +15,7 @@
     <!-- Start Navigation node -->
     <node pkg="orbit_sim" name="Navigation" type="Navigation.py"/>
 
+    <!-- Start Spawn Control node -->
+    <node pkg="orbit_sim" name="SpawnControl" type="SpawnControl.py"/>
+
 </launch>
