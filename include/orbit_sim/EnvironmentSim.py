@@ -7,9 +7,12 @@ import math
 
 class Solver2d(object):
 
+    EarthRadius = 6500 #km
     grav_const = 6.674e-20 # km^3/(kg s^2)
     earth_mass = 5.9722e24 # kg
     mi = grav_const*earth_mass # km^3/s^2
+    A_coef_drag = 2
+    B_coef_drag = 0.01
 
     def __init__(self, dt):
         #solver variables
@@ -42,7 +45,8 @@ class Solver2d(object):
     def calculateDerivative(self, sc):
         '''
         Outputs derivative of the states diff_Gl = (dx, dy, ddx, ddy): nparray (1, 4)
-        R_GlbRSW : 2D Rot matrix - Radial to Global frame 
+        R_GlbRSW : 2D Rot matrix - Radial to Global frame
+        R_GlbNTW : 2D Rot matrix - In-Track to Global frame
         '''
 
         #so it is easier to manipulate
@@ -50,17 +54,29 @@ class Solver2d(object):
         y = sc.currentState[0,1]
         vx = sc.currentState[0,2]
         vy = sc.currentState[0,3]
+        radius = np.sqrt(x**2 + y**2)
+        vel = np.sqrt(vx**2 + vy**2)
 
         #calculate rotation matrix from current state
         theta = np.arctan2(y, x)
+        if vx < 0:
+            beta = np.arccos(vy/vel)
+        else:
+            beta = 2*np.pi - np.arccos(vy/vel)
+       
         R_GlbRSW = self.getRotMatrix(theta)
+        R_GlbNTW = self.getRotMatrix(beta)
 
         #gravitational pull in radial/tangencial frame
         ddxGrav_Rad = -np.array([[Solver2d.mi/(x**2 + y**2)], [0]])
         ddxGrav_Glb = np.matmul(R_GlbRSW, ddxGrav_Rad) #tranform to global frame
 
+        #drag force in In-track NTW frame
+        ddxDrag_InTr = np.array([[0], [-Solver2d.getDrag(vel, radius)]])
+        ddxDrag_Glb = np.matmul(R_GlbNTW, ddxDrag_InTr) #tranform to global frame
+
         #get derivative in global frame
-        diff_Gl = np.vstack(( np.array([[vx],[vy]]),  ddxGrav_Glb)).transpose()
+        diff_Gl = np.vstack(( np.array([[vx],[vy]]),  ddxGrav_Glb + ddxDrag_Glb )).transpose()
 
         return diff_Gl
     
@@ -79,6 +95,10 @@ class Solver2d(object):
         #returns 2D rotation matrix for an angle alpha [rad]
         return np.array([[np.cos(alpha), -np.sin(alpha)],
                          [np.sin(alpha),np.cos(alpha)]])
+    
+    @classmethod
+    def getDrag(cls, vel, radius):
+        return Solver2d.A_coef_drag*np.exp(-Solver2d.B_coef_drag*(radius-Solver2d.EarthRadius))*vel**2
     
 class SolverInterface(Solver2d):
     #encapsulates logic for node communication (publisher, subscriber) and main callback functions
