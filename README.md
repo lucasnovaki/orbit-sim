@@ -34,7 +34,7 @@ where $a$ is the semi-major axis,  $e$ is the eccentricity, $\omega$ is the argu
 In this implementation, a global reference frame is fixed in the central body, while a NTW in-track frame is fixed in the moving small body. The initial states must be given wrt. the global coordinate system, but the thrust action must be determined in the local base.
 
 <p align="center">
-  <img src="https://github.com/lucasnovaki/orbit-sim/blob/multibody_sim/docs/imgs/Diagram_CoS.png">
+  <img src="https://github.com/lucasnovaki/orbit-sim/blob/master/docs/imgs/Diagram_CoS.png">
 </p>
 
 ### Quick demo & comments
@@ -51,7 +51,7 @@ user@mynotebook:~/ws_catkin/src/orbit_sim$ rosservice call spawncontrol/Delete 1
 ```
 The green-dashed trajectory is the ellipsis resulted from the orbital elements. However, one can obtain a hyperbolic motion when the initial velocities are too high.
 
-![](https://github.com/lucasnovaki/orbit-sim/blob/multibody_sim/docs/gifs/SpawnerGif_Cropped_2607.gif)
+![](https://github.com/lucasnovaki/orbit-sim/blob/master/docs/gifs/SpawnerGif_Cropped_2607.gif)
 
 <b>2. Applying thrust: </b>given the tuple $(\Delta{v_{x}}, \Delta{v_{y}})$ defined in the SC's coordinate system, a kick-burn is applied and the body velocity changes at one time step. For a desired thrust only in the direction of motion, keep $\Delta{v_{x}}=0$:
 
@@ -59,8 +59,8 @@ The green-dashed trajectory is the ellipsis resulted from the orbital elements. 
 user@mynotebook:~/ws_catkin/src/orbit_sim$ rosservice call spawncontrol/Spawn -- 1 -15150 0 0 6.2
 user@mynotebook:~/ws_catkin/src/orbit_sim$ rosservice call Environment/ApplyThrust -- 1 0 0.25
 ```
-![](https://github.com/lucasnovaki/orbit-sim/blob/multibody_sim/docs/gifs/ThrustApo_Cropped_2607.gif)
-![](https://github.com/lucasnovaki/orbit-sim/blob/multibody_sim/docs/gifs/ThrustPeri_Cropped_2607.gif)
+![](https://github.com/lucasnovaki/orbit-sim/blob/master/docs/gifs/ThrustApo_Cropped_2607.gif)
+![](https://github.com/lucasnovaki/orbit-sim/blob/master/docs/gifs/ThrustPeri_Cropped_2607.gif)
 
 Here the Oberth Effect becomes visible. The same velocity change $\Delta{v}$ has greater impact on the orbital energy (related to the semi-major axis $a$) when it is applied at high velocities. That is, the periapsis is the most efficient maneuver point to increase the orbital energy with a boost.
 
@@ -73,7 +73,7 @@ user@mynotebook:~/ws_catkin/src/orbit_sim$ rosservice call navigation/SetNewOrbi
 user@mynotebook:~/ws_catkin/src/orbit_sim$ rosservice call navigation/SetNewOrbit -- 2 20500 0.15 0
 ```
 
-![](https://github.com/lucasnovaki/orbit-sim/blob/multibody_sim/docs/gifs/HohmannMultibody_2607v3.gif)
+![](https://github.com/lucasnovaki/orbit-sim/blob/master/docs/gifs/HohmannMultibody_2607v3.gif)
 
 Hohmann transfers are energetically the most efficient solution for the general Lambert's Transfer, although it has some known restrictions: current and target orbits are elliptical, coplanar and don't intersect each other, and their angular momentum have the same direction. Additional restriction: any desired changes in $\omega$ are ignored in this implementation.
 
