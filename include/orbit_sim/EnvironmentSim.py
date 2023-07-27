@@ -10,10 +10,6 @@ class Solver2d(object):
     grav_const = 6.674e-20 # km^3/(kg s^2)
     earth_mass = 5.9722e24 # kg
     mi = grav_const*earth_mass # km^3/s^2
-    r_pe = 15150.0 #km
-    r_apo = 56070.0 #km
-    a_orbit = (r_pe + r_apo)/2 #km
-    v_pe = np.sqrt(mi*(2/r_pe - 1/a_orbit))
 
     def __init__(self, dt):
         #solver variables
@@ -44,6 +40,7 @@ class Solver2d(object):
         return sc
 
     def calculateDerivative(self, sc):
+        # returns state derivative in global frame: diffGlobal
 
         #so it is easier to manipulate
         x = sc.currentState[0,0]
@@ -75,10 +72,12 @@ class Solver2d(object):
 
     @classmethod
     def getRotMatrix(cls, alpha):
+        #returns 2D rotation matrix for an angle alpha [rad]
         return np.array([[np.cos(alpha), -np.sin(alpha)],
                          [np.sin(alpha),np.cos(alpha)]])
     
 class SolverInterface(Solver2d):
+    #encapsulates logic for node communication (publisher, subscriber) and main callback functions
 
     def __init__(self, dt):
 
@@ -125,16 +124,13 @@ class SolverInterface(Solver2d):
 
             #append to list
             orbitsMsg.orbit.append(orbit_msg)
-
-            #debug: publish e vector
-            #e_vector = sc.orbit.e_vector
         
         if len(self.lst_ids)>0:
             self.pubOrbitParams.publish(orbitsMsg)
-            #self.pubEccentrVector.publish(Vector3(e_vector[0,0], e_vector[0,1], e_vector[0,2]))
         return
     
     def callbackSpawnerAdd(self, state_msg):
+        # add new spacecraft if id is new
         if state_msg.id[0] not in self.lst_ids:
             pos = state_msg.position[0]
             vel = state_msg.velocity[0]
@@ -142,6 +138,7 @@ class SolverInterface(Solver2d):
             self.add_spacecraft(state_msg.id[0], initState)
 
     def callbackSpawnerDelete(self, body_id_msg):
+        # remove spacecraft if id existent
         if body_id_msg.id in self.lst_ids:
             self.remove_spacecraft(body_id_msg.id)
 
@@ -176,6 +173,8 @@ class Spacecraft2d(object):
         return (self.currentState[0,0], self.currentState[0,1], self.currentState[0,2], self.currentState[0,3])
 
 class Orbit2d(object):
+    #encapsulates logic to calculate orbital elements and create OrbitMsg
+
     def __init__(self, spacecraft = None, orbitMsg = None):
 
         #main orbital elements
@@ -255,6 +254,6 @@ class Orbit2d(object):
         if self.theta_orbit:
             msg.theta_orbit = self.theta_orbit
         else:
-            msg.theta_orbit = 9999
+            msg.theta_orbit = 9999 #fill value when true anomaly not important
         return msg
 

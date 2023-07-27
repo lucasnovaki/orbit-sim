@@ -78,7 +78,7 @@ class Transfer2d(object):
     def __init__(self, targetOrbit, currentOrbit):
         self.targetOrbit = targetOrbit
         self.currentOrbit = currentOrbit
-        self.transferOrbit, self.maneuever_lst = self.calculateTransfer()
+        self.transferOrbit, self.maneuver_lst = self.calculateTransfer()
 
     def calculateTransfer(self):
         # outputs maneuver list: [m1, m2]
@@ -121,16 +121,16 @@ class Transfer2d(object):
                 rospy.loginfo('Transfer mode 1')
                 dv_int = v_per_trs - v_per_int
                 dv_ext = v_apo_ext - v_apo_trs
-                maneuever_lst = [([0, dv_int], 0),([0, dv_ext], math.pi)]
+                maneuver_lst = [([0, dv_int], 0),([0, dv_ext], math.pi)]
 
             else:
                 rospy.loginfo('Transfer mode 2')
                 dv_int = v_per_int - v_per_trs
                 dv_ext = v_apo_trs - v_apo_ext
-                maneuever_lst = [([0, dv_ext], math.pi), ([0, dv_int], 0)]
+                maneuver_lst = [([0, dv_ext], math.pi), ([0, dv_int], 0)]
 
             rospy.loginfo("Transfer orbit and maneuver list calculated")
-            return transferOrbit, maneuever_lst
+            return transferOrbit, maneuver_lst
         else:
             return None, []
 
@@ -149,14 +149,14 @@ class Planner(object):
     def __init__(self, tol = 0.025):
         self.queues = dict()
         self.currentTheta = dict()
-        self.tol = tol # tolerance to detect maneuever point [rad]
+        self.tol = tol # tolerance to detect maneuver point [rad]
         self.transfer_programmed = 0
 
         ## communication
         self.clientApplyThrust = rospy.ServiceProxy("/environment/ApplyThrust", ApplyThrust)
         self.pubApplyThrust = rospy.Publisher("/navigation/thrust", Point, queue_size = 1)
 
-    def checkForManeuever(self, orbit_msg):
+    def checkForManeuver(self, orbit_msg):
         #callback from ros timer to verify point of maneuver
         for id in list(self.queues): #iterate over copy of keys
             currentManeuver = self.queues[id][0]
@@ -164,7 +164,7 @@ class Planner(object):
             C2 = (abs(self.currentTheta[id] + 2*math.pi - currentManeuver[1]) < self.tol)
             C3 = (abs(self.currentTheta[id] - 2*math.pi - currentManeuver[1]) < self.tol)
             if C1 or C2 or C3:
-                self.executeManeuever(id, currentManeuver[0]) 
+                self.executeManeuver(id, currentManeuver[0]) 
 
     def programTransfer(self, id, transfer):
         
@@ -172,12 +172,12 @@ class Planner(object):
         if id not in self.queues: self.queues[id] = []
 
         # place planned kick burn at the queue end
-        self.queues[id].extend(transfer.maneuever_lst)
+        self.queues[id].extend(transfer.maneuver_lst)
 
         rospy.loginfo('Current queues: {}'.format(str(self.queues)) )
 
 
-    def executeManeuever(self, id, dv):
+    def executeManeuver(self, id, dv):
         #call thrust service/ publish thrust msg
         self.clientApplyThrust(id, dv[0], dv[1])
         rospy.loginfo('Thrust published: dv = ({:.2f}, {:.2f})'.format(dv[0], dv[1]))

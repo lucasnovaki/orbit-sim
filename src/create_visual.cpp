@@ -26,7 +26,7 @@ int main( int argc, char** argv )
       {
         return 0;
       }
-      ROS_WARN_ONCE("Please create a subscriber to the marker");
+      ROS_WARN_ONCE("No subscriber for create_visual");
       sleep(1);
     }
 

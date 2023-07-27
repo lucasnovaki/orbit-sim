@@ -33,7 +33,7 @@ if __name__ == '__main__':
         server_transfer = rospy.Service("/navigation/SetNewOrbit", SetNewOrbit, spaceNavigator.callbackSetTransfer)
 
         # Create a ROS Timer for sending data
-        rospy.Timer(rospy.Duration(10.0/1000.0), transferPlanner.checkForManeuever)
+        rospy.Timer(rospy.Duration(10.0/1000.0), transferPlanner.checkForManeuver)
         rospy.spin()
 
     except rospy.ROSInterruptException:

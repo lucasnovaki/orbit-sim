@@ -91,8 +91,6 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
  void Drawer::callbackSpawnerAdd(const orbit_sim::State2d::ConstPtr& state){
     //add news markers to maps
 
-    ROS_INFO("Callback triggered");
-
     //Define new markers
     visualization_msgs::Marker newMarkerPos;
     visualization_msgs::Marker newMarkerVel;
@@ -187,6 +185,7 @@ geometry_msgs::Point rotate2dPoint(geometry_msgs::Point p_in, float angle){
 }
 
 void Drawer::updateSpacecraftBody(uint16_t id, geometry_msgs::Vector3 pos){
+  //update SC position (x,y) based on new vector pos
   auto itMapPos = this->spacecraft_body_map.find(id);
   if (itMapPos!= this->spacecraft_body_map.end()){
     itMapPos->second.pose.position.x = SCALE_FACTOR*pos.x;
@@ -241,6 +240,7 @@ void Drawer::drawEllipsis(const orbit_sim::Orbit2d orbitParams, visualization_ms
 }
 
 void Drawer::CurrentOrbitCallback(const orbit_sim::Orbits::ConstPtr& orbitsMsg){
+    //Callback to recalculate current trajectory based on new orbit message
 
     //iterate on id list
     for(uint16_t i = 0; i < orbitsMsg->id.size(); ++i){
