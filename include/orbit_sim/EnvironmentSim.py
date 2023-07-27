@@ -40,25 +40,29 @@ class Solver2d(object):
         return sc
 
     def calculateDerivative(self, sc):
-        # returns state derivative in global frame: diffGlobal
+        '''
+        Outputs derivative of the states diff_Gl = (dx, dy, ddx, ddy): nparray (1, 4)
+        R_GlbRSW : 2D Rot matrix - Radial to Global frame 
+        '''
 
         #so it is easier to manipulate
         x = sc.currentState[0,0]
         y = sc.currentState[0,1]
-        dx = sc.currentState[0,2]
-        dy = sc.currentState[0,3]
+        vx = sc.currentState[0,2]
+        vy = sc.currentState[0,3]
 
         #calculate rotation matrix from current state
         theta = np.arctan2(y, x)
-        rotMatrix = self.getRotMatrix(theta)
+        R_GlbRSW = self.getRotMatrix(theta)
 
-        #derivative in radial/tangencial frame
-        ddxTang = -np.array([[Solver2d.mi/(x**2 + y**2)], [0]])
+        #gravitational pull in radial/tangencial frame
+        ddxGrav_Rad = -np.array([[Solver2d.mi/(x**2 + y**2)], [0]])
+        ddxGrav_Glb = np.matmul(R_GlbRSW, ddxGrav_Rad) #tranform to global frame
 
         #get derivative in global frame
-        diffGlobal = np.vstack(( np.array([[dx],[dy]]), np.matmul(rotMatrix, ddxTang) )).transpose()
+        diff_Gl = np.vstack(( np.array([[vx],[vy]]),  ddxGrav_Glb)).transpose()
 
-        return diffGlobal
+        return diff_Gl
     
     def add_spacecraft(self, id, initState):
         self.spacecrafts[id] = Spacecraft2d(id, initState)
