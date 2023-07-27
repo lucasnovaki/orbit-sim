@@ -2,6 +2,9 @@
 
 A simple ROS-based 2D orbital mechanics simulator 
 
+### This branch:
+Implementation of drag force model in EnvironmentSim
+
 ### Key features
  - numerical simulation of spacecraft 2d motion around fixed central body
  - rviz visualization and display of states and orbital elements
